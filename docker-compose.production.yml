@@ -1,0 +1,179 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: arka-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-arka_mcp_gateway}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"  # Only expose to localhost
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-arka_mcp_gateway}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - arka-network
+
+  # Backend API (Main Gateway)
+  backend:
+    image: kenislabsregistry.azurecr.io/arka-backend:latest
+    container_name: arka-backend
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Database
+      ARKA_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-arka_mcp_gateway}
+
+      # JWT
+      ARKA_JWT_SECRET_KEY: ${ARKA_JWT_SECRET_KEY:?ARKA_JWT_SECRET_KEY is required}
+      ARKA_JWT_ALGORITHM: HS256
+      ARKA_JWT_ACCESS_TOKEN_EXPIRE_MINUTES: ${ARKA_JWT_ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+      ARKA_JWT_REFRESH_TOKEN_EXPIRE_DAYS: ${ARKA_JWT_REFRESH_TOKEN_EXPIRE_DAYS:-7}
+
+      # Encryption
+      ARKA_ENCRYPTION_KEY: ${ARKA_ENCRYPTION_KEY:?ARKA_ENCRYPTION_KEY is required}
+
+      # Application URLs
+      ARKA_FRONTEND_URL: ${ARKA_FRONTEND_URL:?ARKA_FRONTEND_URL is required}
+      ARKA_BACKEND_URL: ${ARKA_BACKEND_URL:?ARKA_BACKEND_URL is required}
+      ARKA_WORKER_URL: ${ARKA_WORKER_URL:-http://worker:8001}
+
+      # Azure OAuth
+      ARKA_AZURE_CLIENT_ID: ${ARKA_AZURE_CLIENT_ID}
+      ARKA_AZURE_CLIENT_SECRET: ${ARKA_AZURE_CLIENT_SECRET}
+      ARKA_AZURE_TENANT_ID: ${ARKA_AZURE_TENANT_ID}
+
+      # GitHub User OAuth
+      ARKA_GITHUB_USER_OAUTH_CLIENT_ID: ${ARKA_GITHUB_USER_OAUTH_CLIENT_ID}
+      ARKA_GITHUB_USER_OAUTH_CLIENT_SECRET: ${ARKA_GITHUB_USER_OAUTH_CLIENT_SECRET}
+
+      # GitHub MCP OAuth
+      ARKA_GITHUB_OAUTH_CLIENT_ID: ${ARKA_GITHUB_OAUTH_CLIENT_ID}
+      ARKA_GITHUB_OAUTH_CLIENT_SECRET: ${ARKA_GITHUB_OAUTH_CLIENT_SECRET}
+
+      # Gmail OAuth
+      GMAIL_OAUTH_CLIENT_ID: ${GMAIL_OAUTH_CLIENT_ID}
+      GMAIL_OAUTH_CLIENT_SECRET: ${GMAIL_OAUTH_CLIENT_SECRET}
+
+      # Google OAuth (for Gmail/Calendar)
+      ARKA_GOOGLE_OAUTH_CLIENT_ID: ${ARKA_GOOGLE_OAUTH_CLIENT_ID}
+      ARKA_GOOGLE_OAUTH_CLIENT_SECRET: ${ARKA_GOOGLE_OAUTH_CLIENT_SECRET}
+
+      # Slack OAuth
+      ARKA_SLACK_CLIENT_ID: ${ARKA_SLACK_CLIENT_ID}
+      ARKA_SLACK_CLIENT_SECRET: ${ARKA_SLACK_CLIENT_SECRET}
+
+      # Admin
+      ARKA_ADMIN_EMAIL: ${ARKA_ADMIN_EMAIL:-admin@kenislabs.com}
+      ARKA_ADMIN_PASSWORD: ${ARKA_ADMIN_PASSWORD:?ARKA_ADMIN_PASSWORD is required}
+
+      # Production settings
+      ARKA_LOG_LEVEL: ${ARKA_LOG_LEVEL:-INFO}
+      ARKA_ENVIRONMENT: production
+      ENV_FOR_DYNACONF: production
+    command: ["uv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
+    ports:
+      - "127.0.0.1:8000:8000"  # Only expose to localhost (Nginx will proxy)
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - arka-network
+
+  # Worker Service
+  worker:
+    image: kenislabsregistry.azurecr.io/arka-backend:latest
+    container_name: arka-worker
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Database
+      ARKA_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-arka_mcp_gateway}
+
+      # JWT
+      ARKA_JWT_SECRET_KEY: ${ARKA_JWT_SECRET_KEY}
+      ARKA_JWT_ALGORITHM: HS256
+
+      # Encryption
+      ARKA_ENCRYPTION_KEY: ${ARKA_ENCRYPTION_KEY}
+
+      # Application URLs
+      ARKA_FRONTEND_URL: ${ARKA_FRONTEND_URL}
+      ARKA_BACKEND_URL: ${ARKA_BACKEND_URL}
+      ARKA_WORKER_URL: ${ARKA_WORKER_URL:-http://worker:8001}
+
+      # Production settings
+      ARKA_LOG_LEVEL: ${ARKA_LOG_LEVEL:-INFO}
+      ARKA_ENVIRONMENT: production
+      ENV_FOR_DYNACONF: production
+    command: ["uv", "run", "uvicorn", "worker:app", "--host", "0.0.0.0", "--port", "8001"]
+    ports:
+      - "127.0.0.1:8001:8001"  # Only expose to localhost
+    networks:
+      - arka-network
+
+  # Frontend (React + Nginx)
+  frontend:
+    image: kenislabsregistry.azurecr.io/arka-frontend:latest
+    container_name: arka-frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "80:80"      # HTTP
+      - "443:443"    # HTTPS
+    volumes:
+      - certbot-etc:/etc/letsencrypt
+      - certbot-var:/var/lib/letsencrypt
+      - certbot-www:/var/www/certbot
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    networks:
+      - arka-network
+
+  # Certbot for SSL certificate management
+  certbot:
+    image: certbot/certbot:latest
+    container_name: arka-certbot
+    volumes:
+      - certbot-etc:/etc/letsencrypt
+      - certbot-var:/var/lib/letsencrypt
+      - certbot-www:/var/www/certbot
+    # Run certbot in webroot mode (requires frontend to be running)
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew --webroot --webroot-path=/var/www/certbot --quiet; sleep 12h & wait $${!}; done;'"
+    networks:
+      - arka-network
+
+networks:
+  arka-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  certbot-etc:
+    driver: local
+  certbot-var:
+    driver: local
+  certbot-www:
+    driver: local

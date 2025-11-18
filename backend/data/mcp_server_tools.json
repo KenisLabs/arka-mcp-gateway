@@ -1,0 +1,211 @@
+{
+  "github-mcp": {
+    "server_name": "GitHub MCP Server",
+    "tools": [
+      {
+        "tool_name": "create_issue",
+        "display_name": "Create Issue",
+        "description": "Create a new issue in a GitHub repository",
+        "category": "Issues",
+        "is_dangerous": false
+      },
+      {
+        "tool_name": "create_pull_request",
+        "display_name": "Create Pull Request",
+        "description": "Create a new pull request in a repository",
+        "category": "Pull Requests",
+        "is_dangerous": false
+      },
+      {
+        "tool_name": "search_repositories",
+        "display_name": "Search Repositories",
+        "description": "Search for GitHub repositories",
+        "category": "Search",
+        "is_dangerous": false
+      },
+      {
+        "tool_name": "get_file_contents",
+        "display_name": "Get File Contents",
+        "description": "Retrieve the contents of a file from a repository",
+        "category": "Files",
+        "is_dangerous": false
+      },
+      {
+        "tool_name": "list_commits",
+        "display_name": "List Commits",
+        "description": "List commits in a repository",
+        "category": "Repository",
+        "is_dangerous": false
+      },
+      {
+        "tool_name": "create_branch",
+        "display_name": "Create Branch",
+        "description": "Create a new branch in a repository",
+        "category": "Branches",
+        "is_dangerous": false
+      },
+      {
+        "tool_name": "merge_pull_request",
+        "display_name": "Merge Pull Request",
+        "description": "Merge a pull request",
+        "category": "Pull Requests",
+        "is_dangerous": true
+      },
+      {
+        "tool_name": "delete_branch",
+        "display_name": "Delete Branch",
+        "description": "Delete a branch from a repository",
+        "category": "Branches",
+        "is_dangerous": true
+      },
+      {
+        "tool_name": "push_files",
+        "display_name": "Push Files",
+        "description": "Push files to a repository",
+        "category": "Files",
+        "is_dangerous": true
+      }
+    ]
+  },
+  "jira-mcp": {
+    "server_name": "Jira MCP Server",
+    "tools": [
+      {
+        "tool_name": "create_issue",
+        "display_name": "Create Issue",
+        "description": "Create a new Jira issue",
+        "category": "Issues",
+        "is_dangerous": false
+      },
+      {
+        "tool_name": "update_issue",
+        "display_name": "Update Issue",
+        "description": "Update an existing Jira issue",
+        "category": "Issues",
+        "is_dangerous": false
+      },
+      {
+        "tool_name": "search_issues",
+        "display_name": "Search Issues",
+        "description": "Search for Jira issues using JQL",
+        "category": "Search",
+        "is_dangerous": false
+      },
+      {
+        "tool_name": "add_comment",
+        "display_name": "Add Comment",
+        "description": "Add a comment to a Jira issue",
+        "category": "Comments",
+        "is_dangerous": false
+      },
+      {
+        "tool_name": "transition_issue",
+        "display_name": "Transition Issue",
+        "description": "Change the status of a Jira issue",
+        "category": "Issues",
+        "is_dangerous": false
+      },
+      {
+        "tool_name": "delete_issue",
+        "display_name": "Delete Issue",
+        "description": "Delete a Jira issue",
+        "category": "Issues",
+        "is_dangerous": true
+      }
+    ]
+  },
+  "slack-mcp": {
+    "server_name": "Slack MCP Server",
+    "tools": [
+      {
+        "tool_name": "send_message",
+        "display_name": "Send Message",
+        "description": "Send a message to a Slack channel",
+        "category": "Messaging",
+        "is_dangerous": false
+      },
+      {
+        "tool_name": "list_channels",
+        "display_name": "List Channels",
+        "description": "List all available Slack channels",
+        "category": "Channels",
+        "is_dangerous": false
+      },
+      {
+        "tool_name": "search_messages",
+        "display_name": "Search Messages",
+        "description": "Search for messages in Slack",
+        "category": "Search",
+        "is_dangerous": false
+      },
+      {
+        "tool_name": "create_channel",
+        "display_name": "Create Channel",
+        "description": "Create a new Slack channel",
+        "category": "Channels",
+        "is_dangerous": false
+      },
+      {
+        "tool_name": "upload_file",
+        "display_name": "Upload File",
+        "description": "Upload a file to Slack",
+        "category": "Files",
+        "is_dangerous": false
+      }
+    ]
+  },
+  "google-drive-mcp": {
+    "server_name": "Google Drive MCP Server",
+    "tools": [
+      {
+        "tool_name": "list_files",
+        "display_name": "List Files",
+        "description": "List files in Google Drive",
+        "category": "Files",
+        "is_dangerous": false
+      },
+      {
+        "tool_name": "search_files",
+        "display_name": "Search Files",
+        "description": "Search for files in Google Drive",
+        "category": "Search",
+        "is_dangerous": false
+      },
+      {
+        "tool_name": "read_file",
+        "display_name": "Read File",
+        "description": "Read the contents of a file",
+        "category": "Files",
+        "is_dangerous": false
+      },
+      {
+        "tool_name": "create_file",
+        "display_name": "Create File",
+        "description": "Create a new file in Google Drive",
+        "category": "Files",
+        "is_dangerous": false
+      },
+      {
+        "tool_name": "update_file",
+        "display_name": "Update File",
+        "description": "Update an existing file",
+        "category": "Files",
+        "is_dangerous": false
+      },
+      {
+        "tool_name": "delete_file",
+        "display_name": "Delete File",
+        "description": "Delete a file from Google Drive",
+        "category": "Files",
+        "is_dangerous": true
+      },
+      {
+        "tool_name": "share_file",
+        "display_name": "Share File",
+        "description": "Share a file with other users",
+        "category": "Sharing",
+        "is_dangerous": true
+      }
+    ]
+  }
+}

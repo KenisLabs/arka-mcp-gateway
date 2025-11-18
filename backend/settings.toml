@@ -1,0 +1,44 @@
+# Dynaconf Settings File
+# This file contains default configuration values for all environments.
+# Environment-specific values can be defined using [development], [staging], [production] sections.
+
+[default]
+# Azure OAuth Configuration
+azure_client_id = ""
+azure_client_secret = ""
+azure_tenant_id = "common"
+
+# GitHub OAuth Configuration (for MCP authorization)
+github_oauth_client_id = ""
+github_oauth_client_secret = ""
+github_oauth_redirect_uri = "http://localhost:8000/servers/github-mcp/auth-callback"
+
+# Application URLs
+frontend_url = "http://localhost:5173"
+backend_url = "http://localhost:8000"
+worker_url = "http://localhost:8001"
+
+# Database Configuration
+database_url = "postgresql+asyncpg://postgres:postgres@localhost:5432/arka_mcp_gateway"
+
+# JWT Configuration
+jwt_secret_key = "your-secret-key-change-in-production-use-openssl-rand-hex-32"
+jwt_algorithm = "HS256"
+jwt_access_token_expire_minutes = 30
+jwt_refresh_token_expire_days = 7
+
+# Security
+secret_key = "your-secret-key-change-in-production"
+cookie_secure = false  # Set to true in production with HTTPS
+
+[development]
+# Development-specific overrides
+jwt_access_token_expire_minutes = 60  # Longer expiration for development
+
+[production]
+# Production-specific overrides
+jwt_access_token_expire_minutes = 15  # Shorter expiration for production
+cookie_secure = true  # Enable secure cookies in production (requires HTTPS)
+frontend_url = "https://arka.kenislabs.com"
+backend_url = "https://arka.kenislabs.com"
+worker_url = "http://worker:8001"

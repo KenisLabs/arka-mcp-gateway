@@ -1,0 +1,649 @@
+{
+  "_comment": "Only showing implemented MCP servers. Unimplemented servers (Jira, Linear, GitLab, Confluence, Google Drive, Trello, Asana, Zendesk, Salesforce) are in _disabled_catalog until implementation is complete.",
+  "catalog": [
+    {
+      "id": "github-mcp",
+      "name": "GitHub",
+      "display_name": "GitHub MCP Server",
+      "description": "Access GitHub repositories, issues, pull requests, and workflows. Manage code, review PRs, and automate GitHub operations.",
+      "category": "Development",
+      "icon": "github",
+      "version": "1.0.0",
+      "publisher": "Anthropic",
+      "requires_auth": true,
+      "auth_type": "oauth2",
+      "auth_fields": [
+        {
+          "name": "client_id",
+          "label": "GitHub OAuth Client ID",
+          "type": "text",
+          "required": true,
+          "placeholder": "Iv1.1234567890abcdef",
+          "help_text": "OAuth App Client ID from GitHub Developer Settings"
+        },
+        {
+          "name": "client_secret",
+          "label": "GitHub OAuth Client Secret",
+          "type": "password",
+          "required": true,
+          "placeholder": "ghp_xxxxxxxxxxxxxxxxxxxx",
+          "help_text": "OAuth App Client Secret from GitHub Developer Settings"
+        },
+        {
+          "name": "redirect_uri",
+          "label": "Redirect URI",
+          "type": "text",
+          "required": true,
+          "placeholder": "http://localhost:8000/oauth/github/callback",
+          "help_text": "Must match the redirect URI configured in your GitHub OAuth App"
+        }
+      ],
+      "documentation_url": "https://docs.github.com/en/developers/apps",
+      "setup_instructions": "1. Go to GitHub Settings > Developer settings > OAuth Apps\n2. Create a new OAuth App\n3. Set the Authorization callback URL\n4. Copy the Client ID and generate a Client Secret",
+      "capabilities": [
+        "Repository management",
+        "Issue tracking",
+        "Pull request reviews",
+        "Branch operations",
+        "GitHub Actions"
+      ],
+      "popular": true
+    },
+    {
+      "id": "gmail-mcp",
+      "name": "Gmail",
+      "display_name": "Gmail MCP Server",
+      "description": "Access and manage Gmail emails, labels, and messages. Read, organize, and send emails programmatically.",
+      "category": "Productivity",
+      "icon": "mail",
+      "version": "1.0.0",
+      "publisher": "Anthropic",
+      "requires_auth": true,
+      "auth_type": "oauth2",
+      "auth_fields": [
+        {
+          "name": "client_id",
+          "label": "Google OAuth Client ID",
+          "type": "text",
+          "required": true,
+          "placeholder": "xxxxxxxxxxxx.apps.googleusercontent.com",
+          "help_text": "OAuth Client ID from Google Cloud Console"
+        },
+        {
+          "name": "client_secret",
+          "label": "Google OAuth Client Secret",
+          "type": "password",
+          "required": true,
+          "placeholder": "GOCSPX-xxxxxxxxxxxxxxxxxxxx",
+          "help_text": "OAuth Client Secret from Google Cloud Console"
+        },
+        {
+          "name": "redirect_uri",
+          "label": "Redirect URI",
+          "type": "text",
+          "required": true,
+          "placeholder": "http://localhost:8000/servers/gmail-mcp/auth-callback",
+          "help_text": "Must match the redirect URI configured in your Google Cloud Console OAuth credentials"
+        }
+      ],
+      "documentation_url": "https://developers.google.com/gmail/api/auth/web-server",
+      "setup_instructions": "1. Go to Google Cloud Console\n2. Create a new project or select existing\n3. Enable Gmail API\n4. Create OAuth 2.0 credentials (Web application)\n5. Add authorized redirect URI\n6. Copy Client ID and Client Secret",
+      "capabilities": [
+        "Read emails and threads",
+        "Label management",
+        "Send emails",
+        "Search inbox",
+        "Attachment handling"
+      ],
+      "popular": true
+    },
+    {
+      "id": "gcal-mcp",
+      "name": "Google Calendar",
+      "display_name": "Google Calendar MCP Server",
+      "description": "Manage Google Calendar events, calendars, and schedules. Create, update, and query calendar events programmatically.",
+      "category": "Productivity",
+      "icon": "calendar",
+      "version": "1.0.0",
+      "publisher": "Anthropic",
+      "requires_auth": true,
+      "auth_type": "oauth2",
+      "auth_fields": [
+        {
+          "name": "client_id",
+          "label": "Google OAuth Client ID",
+          "type": "text",
+          "required": true,
+          "placeholder": "xxxxxxxxxxxx.apps.googleusercontent.com",
+          "help_text": "OAuth Client ID from Google Cloud Console. You can reuse the same OAuth credentials as Gmail MCP if already configured."
+        },
+        {
+          "name": "client_secret",
+          "label": "Google OAuth Client Secret",
+          "type": "password",
+          "required": true,
+          "placeholder": "GOCSPX-xxxxxxxxxxxxxxxxxxxx",
+          "help_text": "OAuth Client Secret from Google Cloud Console"
+        },
+        {
+          "name": "redirect_uri",
+          "label": "Redirect URI",
+          "type": "text",
+          "required": true,
+          "placeholder": "http://localhost:8000/servers/gcal-mcp/auth-callback",
+          "help_text": "Must match the redirect URI configured in your Google Cloud Console OAuth credentials"
+        }
+      ],
+      "documentation_url": "https://developers.google.com/calendar/api/guides/auth",
+      "setup_instructions": "1. Go to Google Cloud Console\n2. Create a new project or select existing\n3. Enable Google Calendar API\n4. Create OAuth 2.0 credentials (Web application)\n5. Add authorized redirect URI\n6. Copy Client ID and Client Secret\n\nNote: You can reuse the same OAuth credentials as Gmail MCP if already configured.",
+      "capabilities": [
+        "List and manage calendars",
+        "Create and update events",
+        "Query free/busy time",
+        "Manage calendar ACLs",
+        "Handle event reminders"
+      ],
+      "popular": true
+    },
+    {
+      "id": "slack-mcp",
+      "name": "Slack",
+      "display_name": "Slack MCP Server",
+      "description": "Send messages, manage channels, and automate Slack workflows. Integrate team communication with your tools.",
+      "category": "Communication",
+      "icon": "slack",
+      "version": "1.0.0",
+      "publisher": "Anthropic",
+      "requires_auth": true,
+      "auth_type": "oauth2",
+      "auth_fields": [
+        {
+          "name": "client_id",
+          "label": "Slack App Client ID",
+          "type": "text",
+          "required": true,
+          "placeholder": "1234567890.1234567890",
+          "help_text": "Client ID from your Slack App credentials"
+        },
+        {
+          "name": "client_secret",
+          "label": "Slack App Client Secret",
+          "type": "password",
+          "required": true,
+          "placeholder": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "help_text": "Client Secret from your Slack App credentials"
+        },
+        {
+          "name": "redirect_uri",
+          "label": "Redirect URI",
+          "type": "text",
+          "required": true,
+          "placeholder": "http://localhost:8000/servers/slack-mcp/auth-callback",
+          "help_text": "Must match the redirect URI configured in your Slack App OAuth settings"
+        }
+      ],
+      "documentation_url": "https://api.slack.com/authentication/oauth-v2",
+      "setup_instructions": "1. Create a Slack App at api.slack.com/apps\n2. Configure OAuth & Permissions\n3. Add required bot scopes\n4. Install app to workspace",
+      "capabilities": [
+        "Message posting",
+        "Channel management",
+        "User lookup",
+        "File uploads",
+        "Workflow automation"
+      ],
+      "popular": true
+    },
+    {
+      "id": "notion-mcp",
+      "name": "Notion",
+      "display_name": "Notion MCP Server",
+      "description": "Access Notion pages, databases, and workspaces. Read and write content across your knowledge base.",
+      "category": "Productivity",
+      "icon": "notion",
+      "version": "1.0.0",
+      "publisher": "Community",
+      "requires_auth": true,
+      "auth_type": "oauth2",
+      "auth_fields": [
+        {
+          "name": "client_id",
+          "label": "Notion Integration Client ID",
+          "type": "text",
+          "required": true,
+          "placeholder": "notion-integration-id",
+          "help_text": "OAuth Client ID from Notion integrations"
+        },
+        {
+          "name": "client_secret",
+          "label": "Notion Integration Secret",
+          "type": "password",
+          "required": true,
+          "placeholder": "secret_xxxxxxxxxxxxxxxxxxxx",
+          "help_text": "OAuth Client Secret from Notion integrations"
+        }
+      ],
+      "documentation_url": "https://developers.notion.com/docs/authorization",
+      "setup_instructions": "1. Go to notion.so/my-integrations\n2. Create a new integration\n3. Configure capabilities and permissions\n4. Get OAuth credentials",
+      "capabilities": [
+        "Page creation and editing",
+        "Database queries",
+        "Block manipulation",
+        "Search across workspace",
+        "User management"
+      ],
+      "popular": false
+    }
+  ],
+  "_disabled_catalog": [
+    {
+      "id": "jira-mcp",
+      "name": "Jira",
+      "display_name": "Jira MCP Server",
+      "description": "Manage Jira issues, projects, sprints, and workflows. Create, update, and track tickets across your organization.",
+      "category": "Project Management",
+      "icon": "jira",
+      "version": "1.0.0",
+      "publisher": "Anthropic",
+      "requires_auth": true,
+      "auth_type": "oauth2",
+      "auth_fields": [
+        {
+          "name": "client_id",
+          "label": "Jira OAuth Client ID",
+          "type": "text",
+          "required": true,
+          "placeholder": "jira-client-id",
+          "help_text": "OAuth 2.0 Client ID from Atlassian Developer Console"
+        },
+        {
+          "name": "client_secret",
+          "label": "Jira OAuth Client Secret",
+          "type": "password",
+          "required": true,
+          "placeholder": "jira-secret-xxxxxxxxxxxx",
+          "help_text": "OAuth 2.0 Client Secret from Atlassian Developer Console"
+        },
+        {
+          "name": "cloud_id",
+          "label": "Jira Cloud ID",
+          "type": "text",
+          "required": true,
+          "placeholder": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+          "help_text": "Your Jira Cloud instance ID"
+        }
+      ],
+      "documentation_url": "https://developer.atlassian.com/cloud/jira/platform/oauth-2-3lo-apps/",
+      "setup_instructions": "1. Go to Atlassian Developer Console\n2. Create a new OAuth 2.0 integration\n3. Configure scopes and permissions\n4. Get your Cloud ID from site admin",
+      "capabilities": [
+        "Issue management",
+        "Project administration",
+        "Sprint planning",
+        "Comment threads",
+        "Status transitions"
+      ],
+      "popular": true
+    },
+    {
+      "id": "linear-mcp",
+      "name": "Linear",
+      "display_name": "Linear MCP Server",
+      "description": "Manage Linear issues, projects, and roadmaps. Streamline product development and issue tracking.",
+      "category": "Project Management",
+      "icon": "linear",
+      "version": "1.0.0",
+      "publisher": "Community",
+      "requires_auth": true,
+      "auth_type": "oauth2",
+      "auth_fields": [
+        {
+          "name": "client_id",
+          "label": "Linear OAuth Client ID",
+          "type": "text",
+          "required": true,
+          "placeholder": "linear-client-id",
+          "help_text": "OAuth Client ID from Linear Settings"
+        },
+        {
+          "name": "client_secret",
+          "label": "Linear OAuth Client Secret",
+          "type": "password",
+          "required": true,
+          "placeholder": "lin_oauth_xxxxxxxxxxxxxxxx",
+          "help_text": "OAuth Client Secret from Linear Settings"
+        }
+      ],
+      "documentation_url": "https://developers.linear.app/docs/oauth/authentication",
+      "setup_instructions": "1. Go to Linear Settings > API\n2. Create a new OAuth application\n3. Configure redirect URIs\n4. Copy credentials",
+      "capabilities": [
+        "Issue creation and updates",
+        "Project management",
+        "Roadmap planning",
+        "Team management",
+        "Custom views"
+      ],
+      "popular": true
+    },
+    {
+      "id": "gitlab-mcp",
+      "name": "GitLab",
+      "display_name": "GitLab MCP Server",
+      "description": "Manage GitLab repositories, merge requests, pipelines, and CI/CD workflows.",
+      "category": "Development",
+      "icon": "gitlab",
+      "version": "1.0.0",
+      "publisher": "Community",
+      "requires_auth": true,
+      "auth_type": "oauth2",
+      "auth_fields": [
+        {
+          "name": "client_id",
+          "label": "GitLab Application ID",
+          "type": "text",
+          "required": true,
+          "placeholder": "gitlab-app-id",
+          "help_text": "Application ID from GitLab OAuth settings"
+        },
+        {
+          "name": "client_secret",
+          "label": "GitLab Application Secret",
+          "type": "password",
+          "required": true,
+          "placeholder": "glpat-xxxxxxxxxxxxxxxxxxxx",
+          "help_text": "Application Secret from GitLab OAuth settings"
+        },
+        {
+          "name": "gitlab_url",
+          "label": "GitLab Instance URL",
+          "type": "text",
+          "required": true,
+          "placeholder": "https://gitlab.com",
+          "help_text": "Your GitLab instance URL (use gitlab.com for cloud)"
+        }
+      ],
+      "documentation_url": "https://docs.gitlab.com/ee/api/oauth2.html",
+      "setup_instructions": "1. Go to GitLab User Settings > Applications\n2. Create a new application\n3. Select required scopes\n4. Save and copy credentials",
+      "capabilities": [
+        "Repository management",
+        "Merge request operations",
+        "CI/CD pipeline control",
+        "Issue tracking",
+        "Wiki management"
+      ],
+      "popular": false
+    },
+    {
+      "id": "confluence-mcp",
+      "name": "Confluence",
+      "display_name": "Confluence MCP Server",
+      "description": "Create and manage Confluence pages, spaces, and documentation. Collaborate on team knowledge.",
+      "category": "Documentation",
+      "icon": "confluence",
+      "version": "1.0.0",
+      "publisher": "Community",
+      "requires_auth": true,
+      "auth_type": "oauth2",
+      "auth_fields": [
+        {
+          "name": "client_id",
+          "label": "Confluence OAuth Client ID",
+          "type": "text",
+          "required": true,
+          "placeholder": "confluence-client-id",
+          "help_text": "OAuth Client ID from Atlassian Developer Console"
+        },
+        {
+          "name": "client_secret",
+          "label": "Confluence OAuth Client Secret",
+          "type": "password",
+          "required": true,
+          "placeholder": "confluence-secret-xxxx",
+          "help_text": "OAuth Client Secret from Atlassian Developer Console"
+        },
+        {
+          "name": "cloud_id",
+          "label": "Confluence Cloud ID",
+          "type": "text",
+          "required": true,
+          "placeholder": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+          "help_text": "Your Confluence Cloud instance ID"
+        }
+      ],
+      "documentation_url": "https://developer.atlassian.com/cloud/confluence/oauth-2-3lo-apps/",
+      "setup_instructions": "1. Create OAuth app in Atlassian Developer Console\n2. Configure Confluence API scopes\n3. Get Cloud ID from admin settings\n4. Copy OAuth credentials",
+      "capabilities": [
+        "Page creation and editing",
+        "Space management",
+        "Content search",
+        "Attachment handling",
+        "Permission management"
+      ],
+      "popular": false
+    },
+    {
+      "id": "google-drive-mcp",
+      "name": "Google Drive",
+      "display_name": "Google Drive MCP Server",
+      "description": "Access Google Drive files, folders, and shared drives. Read, write, and organize documents.",
+      "category": "Storage",
+      "icon": "google-drive",
+      "version": "1.0.0",
+      "publisher": "Community",
+      "requires_auth": true,
+      "auth_type": "oauth2",
+      "auth_fields": [
+        {
+          "name": "client_id",
+          "label": "Google OAuth Client ID",
+          "type": "text",
+          "required": true,
+          "placeholder": "xxxxxxxxxxxx.apps.googleusercontent.com",
+          "help_text": "OAuth Client ID from Google Cloud Console"
+        },
+        {
+          "name": "client_secret",
+          "label": "Google OAuth Client Secret",
+          "type": "password",
+          "required": true,
+          "placeholder": "GOCSPX-xxxxxxxxxxxxxxxxxxxx",
+          "help_text": "OAuth Client Secret from Google Cloud Console"
+        }
+      ],
+      "documentation_url": "https://developers.google.com/drive/api/guides/about-auth",
+      "setup_instructions": "1. Create project in Google Cloud Console\n2. Enable Google Drive API\n3. Create OAuth 2.0 credentials\n4. Configure consent screen and scopes",
+      "capabilities": [
+        "File upload and download",
+        "Folder organization",
+        "Sharing and permissions",
+        "Search across Drive",
+        "Real-time collaboration"
+      ],
+      "popular": false
+    },
+    {
+      "id": "trello-mcp",
+      "name": "Trello",
+      "display_name": "Trello MCP Server",
+      "description": "Manage Trello boards, cards, and lists. Organize projects with visual task management.",
+      "category": "Project Management",
+      "icon": "trello",
+      "version": "1.0.0",
+      "publisher": "Community",
+      "requires_auth": true,
+      "auth_type": "api_key",
+      "auth_fields": [
+        {
+          "name": "api_key",
+          "label": "Trello API Key",
+          "type": "text",
+          "required": true,
+          "placeholder": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "help_text": "Get your API key from trello.com/app-key"
+        },
+        {
+          "name": "api_token",
+          "label": "Trello API Token",
+          "type": "password",
+          "required": true,
+          "placeholder": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "help_text": "Generate a token from trello.com/app-key"
+        }
+      ],
+      "documentation_url": "https://developer.atlassian.com/cloud/trello/guides/rest-api/api-introduction/",
+      "setup_instructions": "1. Go to trello.com/app-key\n2. Copy your API Key\n3. Generate a Token with appropriate permissions\n4. Store both securely",
+      "capabilities": [
+        "Board management",
+        "Card operations",
+        "List organization",
+        "Label management",
+        "Member assignment"
+      ],
+      "popular": false
+    },
+    {
+      "id": "asana-mcp",
+      "name": "Asana",
+      "display_name": "Asana MCP Server",
+      "description": "Manage Asana tasks, projects, and workflows. Coordinate team work and track progress.",
+      "category": "Project Management",
+      "icon": "asana",
+      "version": "1.0.0",
+      "publisher": "Community",
+      "requires_auth": true,
+      "auth_type": "oauth2",
+      "auth_fields": [
+        {
+          "name": "client_id",
+          "label": "Asana OAuth Client ID",
+          "type": "text",
+          "required": true,
+          "placeholder": "asana-client-id",
+          "help_text": "OAuth Client ID from Asana App Console"
+        },
+        {
+          "name": "client_secret",
+          "label": "Asana OAuth Client Secret",
+          "type": "password",
+          "required": true,
+          "placeholder": "asana-secret-xxxxxxxxxxxx",
+          "help_text": "OAuth Client Secret from Asana App Console"
+        }
+      ],
+      "documentation_url": "https://developers.asana.com/docs/oauth",
+      "setup_instructions": "1. Create app in Asana Developer Console\n2. Configure OAuth redirect URLs\n3. Copy Client ID and Secret\n4. Request necessary scopes",
+      "capabilities": [
+        "Task creation and updates",
+        "Project management",
+        "Custom field handling",
+        "Team collaboration",
+        "Subtask management"
+      ],
+      "popular": false
+    },
+    {
+      "id": "zendesk-mcp",
+      "name": "Zendesk",
+      "display_name": "Zendesk MCP Server",
+      "description": "Manage Zendesk tickets, customer support, and help desk operations.",
+      "category": "Customer Support",
+      "icon": "zendesk",
+      "version": "1.0.0",
+      "publisher": "Community",
+      "requires_auth": true,
+      "auth_type": "oauth2",
+      "auth_fields": [
+        {
+          "name": "client_id",
+          "label": "Zendesk OAuth Client ID",
+          "type": "text",
+          "required": true,
+          "placeholder": "zendesk-client-id",
+          "help_text": "OAuth Client ID from Zendesk Admin"
+        },
+        {
+          "name": "client_secret",
+          "label": "Zendesk OAuth Client Secret",
+          "type": "password",
+          "required": true,
+          "placeholder": "zendesk-secret-xxxxxxxxxxxx",
+          "help_text": "OAuth Client Secret from Zendesk Admin"
+        },
+        {
+          "name": "subdomain",
+          "label": "Zendesk Subdomain",
+          "type": "text",
+          "required": true,
+          "placeholder": "yourcompany",
+          "help_text": "Your Zendesk subdomain (yourcompany.zendesk.com)"
+        }
+      ],
+      "documentation_url": "https://developer.zendesk.com/api-reference/",
+      "setup_instructions": "1. Go to Zendesk Admin > Channels > API\n2. Create OAuth client\n3. Configure redirect URLs\n4. Copy credentials",
+      "capabilities": [
+        "Ticket management",
+        "User support",
+        "Knowledge base access",
+        "Macro execution",
+        "Report generation"
+      ],
+      "popular": false
+    },
+    {
+      "id": "salesforce-mcp",
+      "name": "Salesforce",
+      "display_name": "Salesforce MCP Server",
+      "description": "Access Salesforce CRM data, manage leads, opportunities, and customer relationships.",
+      "category": "CRM",
+      "icon": "salesforce",
+      "version": "1.0.0",
+      "publisher": "Community",
+      "requires_auth": true,
+      "auth_type": "oauth2",
+      "auth_fields": [
+        {
+          "name": "client_id",
+          "label": "Salesforce Consumer Key",
+          "type": "text",
+          "required": true,
+          "placeholder": "salesforce-consumer-key",
+          "help_text": "Consumer Key from Connected App"
+        },
+        {
+          "name": "client_secret",
+          "label": "Salesforce Consumer Secret",
+          "type": "password",
+          "required": true,
+          "placeholder": "salesforce-consumer-secret",
+          "help_text": "Consumer Secret from Connected App"
+        },
+        {
+          "name": "instance_url",
+          "label": "Salesforce Instance URL",
+          "type": "text",
+          "required": true,
+          "placeholder": "https://yourinstance.salesforce.com",
+          "help_text": "Your Salesforce instance URL"
+        }
+      ],
+      "documentation_url": "https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/intro_oauth_and_connected_apps.htm",
+      "setup_instructions": "1. Create Connected App in Salesforce Setup\n2. Enable OAuth settings\n3. Configure OAuth scopes\n4. Get Consumer Key and Secret",
+      "capabilities": [
+        "Lead management",
+        "Opportunity tracking",
+        "Account management",
+        "Contact management",
+        "Custom object operations"
+      ],
+      "popular": false
+    }
+  ],
+  "categories": [
+    "Development",
+    "Project Management",
+    "Communication",
+    "Productivity",
+    "Documentation",
+    "Storage",
+    "Customer Support",
+    "CRM"
+  ]
+}

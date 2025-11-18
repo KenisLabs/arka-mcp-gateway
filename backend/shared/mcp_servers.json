@@ -1,0 +1,59 @@
+{
+  "servers": [
+    {
+      "id": "github-mcp",
+      "name": "GitHub MCP Server",
+      "description": "Access GitHub repositories, issues, and pull requests",
+      "status": "available",
+      "type": "github",
+      "icon": "github",
+      "requires_auth": true,
+      "auth_type": "oauth2",
+      "default_enabled": true
+    },
+    {
+      "id": "gmail-mcp",
+      "name": "Gmail MCP Server",
+      "description": "Access and manage Gmail emails, labels, and messages",
+      "status": "available",
+      "type": "gmail",
+      "icon": "mail",
+      "requires_auth": true,
+      "auth_type": "oauth2",
+      "default_enabled": true
+    },
+    {
+      "id": "gcal-mcp",
+      "name": "Google Calendar MCP Server",
+      "description": "Manage Google Calendar events, calendars, and schedules",
+      "status": "available",
+      "type": "google_calendar",
+      "icon": "calendar",
+      "requires_auth": true,
+      "auth_type": "oauth2",
+      "default_enabled": true
+    },
+    {
+      "id": "slack-mcp",
+      "name": "Slack MCP Server",
+      "description": "Send messages, manage channels, and automate Slack workflows",
+      "status": "available",
+      "type": "slack",
+      "icon": "slack",
+      "requires_auth": true,
+      "auth_type": "oauth2",
+      "default_enabled": true
+    },
+    {
+      "id": "notion-mcp",
+      "name": "Notion MCP Server",
+      "description": "Access Notion pages, databases, and workspaces",
+      "status": "available",
+      "type": "notion",
+      "icon": "notion",
+      "requires_auth": true,
+      "auth_type": "oauth2",
+      "default_enabled": true
+    }
+  ]
+}

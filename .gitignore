@@ -1,0 +1,73 @@
+# Python
+__pycache__/
+.ipynb_checkpoints
+*.ipynb
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+htmlcov/
+
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+dist/
+.cache/
+
+# Environment variables
+# Ignore all .env* files except .env.example
+.env*
+!.env.example
+
+# Dynaconf secrets
+.secrets.toml
+.secrets.*.toml
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+logs/
+*.log
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# OS
+.DS_Store
+Thumbs.db
+
+# MCP specific
+mcp_servers_running/
+*.pid
+
+# Project documentation (internal only)
+plan.md
+CLAUDE.md
+localDocs/
+
+# Temporary debug/test files
+check_gcal_access.sh
+check_gcal_config.py
+google_calendar.json
+GOOGLE_CALENDAR_INTEGRATION_CHECKLIST.md
