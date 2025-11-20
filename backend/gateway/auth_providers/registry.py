@@ -7,6 +7,7 @@ from .github import create_github_oauth_provider
 from .gmail import create_gmail_oauth_provider
 from .google_calendar import create_google_calendar_oauth_provider
 from .slack import create_slack_oauth_provider
+from .notion import create_notion_oauth_provider
 from config import settings
 from database import get_db
 from gateway.oauth_db import get_oauth_credentials
@@ -86,7 +87,28 @@ class OAuthProviderRegistry:
                 "Will check database when provider is requested."
             )
 
-        # TODO: Initialize other providers when implemented (Jira, Notion, etc.)
+        # Initialize Notion provider from environment variables (backward compatibility)
+        notion_client_id = getattr(settings, 'notion_oauth_client_id', None)
+        notion_client_secret = getattr(settings, 'notion_oauth_client_secret', None)
+        notion_redirect_uri = getattr(settings, 'notion_oauth_redirect_uri', None)
+
+        if notion_client_id and notion_client_secret:
+            try:
+                self._providers["notion-mcp"] = create_notion_oauth_provider(
+                    client_id=notion_client_id,
+                    client_secret=notion_client_secret,
+                    redirect_uri=notion_redirect_uri or f"{settings.backend_url}/servers/notion-mcp/auth-callback"
+                )
+                logger.info("Notion OAuth provider initialized from environment variables")
+            except Exception as e:
+                logger.error(f"Failed to initialize Notion OAuth provider: {e}")
+        else:
+            logger.info(
+                "Notion OAuth credentials not found in environment. "
+                "Will check database when provider is requested."
+            )
+
+        # TODO: Initialize other providers when implemented (Jira, etc.)
 
     def get_provider(self, server_id: str) -> Optional[OAuthProvider]:
         """
@@ -170,6 +192,16 @@ class OAuthProviderRegistry:
                     return provider
                 elif credentials['provider_name'] == 'slack':
                     provider = create_slack_oauth_provider(
+                        client_id=credentials['client_id'],
+                        client_secret=credentials['client_secret'],  # Already decrypted
+                        redirect_uri=credentials['redirect_uri'],
+                        scopes=credentials['scopes']
+                    )
+                    # Cache the provider
+                    self._providers[server_id] = provider
+                    return provider
+                elif credentials['provider_name'] == 'notion':
+                    provider = create_notion_oauth_provider(
                         client_id=credentials['client_id'],
                         client_secret=credentials['client_secret'],  # Already decrypted
                         redirect_uri=credentials['redirect_uri'],

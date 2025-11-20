@@ -220,6 +220,14 @@
           "required": true,
           "placeholder": "secret_xxxxxxxxxxxxxxxxxxxx",
           "help_text": "OAuth Client Secret from Notion integrations"
+        },
+        {
+          "name": "redirect_uri",
+          "label": "Redirect URI",
+          "type": "text",
+          "required": true,
+          "placeholder": "http://localhost:8000/servers/notion-mcp/auth-callback",
+          "help_text": "Must match the redirect URI configured in your Notion integration OAuth settings"
         }
       ],
       "documentation_url": "https://developers.notion.com/docs/authorization",
