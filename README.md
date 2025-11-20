@@ -2,6 +2,11 @@
 
 A centralized gateway for managing and connecting to multiple MCP (Model Context Protocol) servers. Provides secure, scalable access to MCP servers with SSO authentication, session isolation, and central management.
 
+[![Discord](https://img.shields.io/badge/Discord-Join%20Community-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/YVBgb8wh)
+[![Website](https://img.shields.io/badge/Website-Visit%20Us-FF6B6B?style=for-the-badge&logo=google-chrome&logoColor=white)](https://www.arka.kenislabs.com)
+[![GitHub](https://img.shields.io/badge/GitHub-Star%20Us-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/KenisLabs/arka-mcp-gateway)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue?style=for-the-badge)](LICENSE)
+
 > **📢 Community Edition** - This is the free, open-source version. For enterprise features like Azure AD SSO, Teams, AI Guardrails, Whitelabeling, and more, see [COMMERCIAL.md](./COMMERCIAL.md)
 
 ## Features (Community Edition)

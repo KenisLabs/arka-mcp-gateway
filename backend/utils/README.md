@@ -61,6 +61,36 @@ python -m utils.clear_mcp_tokens
 - During development/testing
 - To clear all OAuth tokens
 
+### update_admin.py
+**Purpose:** Updates admin user email and password in the database.
+
+**Usage:**
+```bash
+cd backend
+
+# Interactive mode (recommended)
+python -m utils.update_admin -i
+
+# Command-line mode
+python -m utils.update_admin --email admin@newdomain.com --password newpassword123
+
+# Update only email
+python -m utils.update_admin --email admin@newdomain.com
+
+# Update only password
+python -m utils.update_admin --password newpassword123
+```
+
+**When to run:**
+- After deployment to change default credentials
+- When admin forgets password
+- When migrating to a new domain
+
+**Security Notes:**
+- Password is automatically hashed with bcrypt before storing
+- Interactive mode hides password input
+- Requires confirmation before applying changes
+
 ## Notes
 
 - All scripts should be run from the `backend/` directory using Python module syntax (`python -m utils.<script_name>`)
