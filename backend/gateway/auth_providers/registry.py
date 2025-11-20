@@ -7,6 +7,7 @@ from .github import create_github_oauth_provider
 from .gmail import create_gmail_oauth_provider
 from .google_calendar import create_google_calendar_oauth_provider
 from .slack import create_slack_oauth_provider
+from .notion import create_notion_oauth_provider
 from config import settings
 from database import get_db
 from gateway.oauth_db import get_oauth_credentials
@@ -86,7 +87,28 @@ class OAuthProviderRegistry:
                 "Will check database when provider is requested."
             )
 
-        # TODO: Initialize other providers when implemented (Jira, Notion, etc.)
+        # Initialize Notion provider from environment variables (backward compatibility)
+        notion_client_id = getattr(settings, 'notion_oauth_client_id', None)
+        notion_client_secret = getattr(settings, 'notion_oauth_client_secret', None)
+        notion_redirect_uri = getattr(settings, 'notion_oauth_redirect_uri', None)
+
+        if notion_client_id and notion_client_secret:
+            try:
+                self._providers["notion-mcp"] = create_notion_oauth_provider(
+                    client_id=notion_client_id,
+                    client_secret=notion_client_secret,
+                    redirect_uri=notion_redirect_uri or f"{settings.backend_url}/servers/notion-mcp/auth-callback"
+                )
+                logger.info("Notion OAuth provider initialized from environment variables")
+            except Exception as e:
+                logger.error(f"Failed to initialize Notion OAuth provider: {e}")
+        else:
+            logger.info(
+                "Notion OAuth credentials not found in environment. "
+                "Will check database when provider is requested."
+            )
+
+        # TODO: Initialize other providers when implemented (Jira, etc.)
 
     def get_provider(self, server_id: str) -> Optional[OAuthProvider]:
         """
@@ -178,6 +200,16 @@ class OAuthProviderRegistry:
                     # Cache the provider
                     self._providers[server_id] = provider
                     return provider
+                elif credentials['provider_name'] == 'notion':
+                    provider = create_notion_oauth_provider(
+                        client_id=credentials['client_id'],
+                        client_secret=credentials['client_secret'],  # Already decrypted
+                        redirect_uri=credentials['redirect_uri'],
+                        scopes=credentials['scopes']
+                    )
+                    # Cache the provider
+                    self._providers[server_id] = provider
+                    return provider
                 else:
                     logger.warning(
                         f"Unknown provider_name '{credentials['provider_name']}' for {server_id}"
@@ -206,3 +238,21 @@ def get_oauth_provider_registry() -> OAuthProviderRegistry:
     if _provider_registry is None:
         _provider_registry = OAuthProviderRegistry()
     return _provider_registry
+
+
+async def get_oauth_provider(server_id: str, db) -> Optional[OAuthProvider]:
+    """
+    Helper function to get OAuth provider for a server.
+
+    This is a convenience function used by token refresh logic.
+    It wraps get_oauth_provider_registry().get_provider_async()
+
+    Args:
+        server_id: MCP server ID (e.g., "gmail-mcp")
+        db: Database session (for loading from database)
+
+    Returns:
+        OAuthProvider instance if available, None otherwise
+    """
+    registry = get_oauth_provider_registry()
+    return await registry.get_provider_async(server_id, db)
