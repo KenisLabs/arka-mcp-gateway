@@ -238,3 +238,21 @@ def get_oauth_provider_registry() -> OAuthProviderRegistry:
     if _provider_registry is None:
         _provider_registry = OAuthProviderRegistry()
     return _provider_registry
+
+
+async def get_oauth_provider(server_id: str, db) -> Optional[OAuthProvider]:
+    """
+    Helper function to get OAuth provider for a server.
+
+    This is a convenience function used by token refresh logic.
+    It wraps get_oauth_provider_registry().get_provider_async()
+
+    Args:
+        server_id: MCP server ID (e.g., "gmail-mcp")
+        db: Database session (for loading from database)
+
+    Returns:
+        OAuthProvider instance if available, None otherwise
+    """
+    registry = get_oauth_provider_registry()
+    return await registry.get_provider_async(server_id, db)
