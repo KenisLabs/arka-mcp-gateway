@@ -1,7 +1,7 @@
 """
 Create Database tool for Notion MCP server.
 
-Creates a new database in Notion under a parent page or workspace.
+Creates a new database in Notion under a parent page with a defined properties schema.
 """
 from typing import Dict, Any, Optional, List
 from .client import NotionAPIClient
@@ -11,63 +11,77 @@ logger = logging.getLogger(__name__)
 
 
 async def create_database(
-    parent: Dict[str, Any],
-    title: List[Dict[str, Any]],
-    properties: Dict[str, Any],
+    parent_id: str,
+    title: str,
+    properties: List[Dict[str, Any]],
     icon: Optional[Dict[str, Any]] = None,
     cover: Optional[Dict[str, Any]] = None,
-    description: Optional[List[Dict[str, Any]]] = None,
+    description: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
-    Create a new database in Notion as a subpage under a parent page or workspace.
+    Create a new database in Notion as a subpage under a specified parent page.
 
-    This function creates a new database with an initial data source, title,
-    and property schema. The parent must be either a Notion page (`page_id`)
-    or the workspace. If the parent page does not exist or the integration
-    lacks access, the API will return an error.
+    Accepts simplified parameters and converts them to the Notion API format internally.
+
+    Prerequisites:
+    - The parent page must be shared with your integration
+    - Parent ID must be a valid UUID format (with or without hyphens)
+    - If conflict errors (409) occur, retry the request
 
     Args:
-        parent: Parent location (page_id or workspace)
-        title: Database title as rich text array
-        properties: Property schema for database
-        icon: Optional icon for database
-        cover: Optional cover image
-        description: Optional description as rich text array
+        parent_id: UUID of the parent page
+                   Example: "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+        title: Database title as plain text
+               Example: "Project Roadmap"
+        properties: Array of property definitions, each with 'name' and 'type' keys
+                   Example: [{"name": "Task", "type": "title"}, {"name": "Status", "type": "select"}]
+        icon: Optional icon object in Notion API format
+        cover: Optional cover object in Notion API format
+        description: Optional description as plain text
 
     Returns:
-        Created database object
-
-    Key points:
-    - `parent`: Specifies where the database is created. Must include the type
-      (`page_id` or `workspace`) and appropriate identifier.
-    - `title`: The display title of the new database.
-    - `properties`: Defines the initial schema of the database's data source,
-      including property types such as `title`, `number`, `select`, `multi_select`,
-      `relation`, `rollup`, etc. Some property types like `status` are currently
-      not supported at creation.
-    - Optional `icon` and `cover` can customize the database appearance.
-    - Optional `description` allows adding rich-text metadata for the database.
-    - Integration must have insert content capability; otherwise, a 403 error is returned.
-    - The created database includes its first table view and initial data source.
+        Database object from Notion API containing id, properties, and metadata
 
     Example:
         database = await create_database(
-            parent={"page_id": "abc-123"},
-            title=[{"text": {"content": "My Database"}}],
-            properties={
-                "Name": {"title": {}},
-                "Status": {"select": {}}
-            }
+            parent_id="a1b2c3d4-e5f6-7890-1234-567890abcdef",
+            title="Project Roadmap",
+            properties=[
+                {"name": "Feature", "type": "title"},
+                {"name": "Status", "type": "select"},
+                {"name": "Assignee", "type": "people"}
+            ]
         )
     """
     try:
         client = NotionAPIClient()
 
-        # Build request body
+        # Build properties dict from array
+        properties_dict = {}
+        for prop in properties:
+            name = prop.get('name')
+            prop_type = prop.get('type')
+            if name and prop_type:
+                # Configure property based on type
+                config = {}
+                if prop_type == 'relation' and 'database_id' in prop:
+                    config = {"database_id": prop['database_id']}
+                elif prop_type == 'rollup':
+                    config = {
+                        "relation_property": prop.get('relation_property', ''),
+                        "rollup_property": prop.get('rollup_property', ''),
+                        "function": prop.get('function', 'count')
+                    }
+                elif prop_type == 'formula' and 'expression' in prop:
+                    config = {"expression": prop['expression']}
+
+                properties_dict[name] = {prop_type: config}
+
+        # Build request body in Notion API format
         database_data = {
-            "parent": parent,
-            "title": title,
-            "properties": properties
+            "parent": {"page_id": parent_id},
+            "title": [{"text": {"content": title}}],
+            "properties": properties_dict
         }
 
         if icon:
@@ -75,7 +89,7 @@ async def create_database(
         if cover:
             database_data["cover"] = cover
         if description:
-            database_data["description"] = description
+            database_data["description"] = [{"text": {"content": description}}]
 
         response = await client.post("/databases", database_data)
         return response

@@ -1,48 +1,52 @@
 """
-Get Page tool for Notion MCP server.
+Fetch Block Metadata tool for Notion MCP server.
 
-Retrieves a Notion page by ID, including properties and content.
+Fetches metadata for a Notion block (including pages, which are special blocks)
+using its UUID. Returns block type, properties, and basic info but not child content.
 """
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any
 from .client import NotionAPIClient
 import logging
 
 logger = logging.getLogger(__name__)
 
 
-async def get_page(
-    page_id: str,
-    filter_properties: Optional[List[str]] = None
-) -> Dict[str, Any]:
+async def get_page(block_id: str) -> Dict[str, Any]:
     """
-    Retrieve a page from Notion.
+    Retrieve metadata for a Notion block.
+
+    Fetches metadata for a Notion block (including pages, which are special blocks)
+    using its UUID. Returns block type, properties, and basic info but not child content.
+
+    Prerequisites:
+    1) Block/page must be shared with your integration
+    2) Use valid block_id from API responses (not URLs)
+
+    For child blocks, use fetch_block_contents instead.
+    Common 404 errors mean the block isn't accessible to your integration.
 
     Args:
-        page_id: Notion page ID (with or without hyphens)
-        filter_properties: Optional list of property names to include
+        block_id: The unique UUID identifier for the Notion block to be retrieved.
+                  Must be a valid 32-character UUID (with or without hyphens).
+                  Pages in Notion are also blocks, so page IDs work here too.
 
     Returns:
-        Page object with properties and metadata
+        Block object with metadata, type, and properties
 
     Example:
-        page = await get_page("abc-123")
-        page = await get_page("abc123", ["Name", "Status"])
+        block = await get_page("c02fc1d3-db8b-45c5-a222-27595b15aea7")
     """
     try:
         client = NotionAPIClient()
 
-        # Build endpoint with query params
-        endpoint = f"/pages/{page_id}"
-        params = {}
-        if filter_properties:
-            params["filter_properties"] = ",".join(filter_properties)
-
-        response = await client.get(endpoint, params if params else None)
+        # Use blocks endpoint as per Notion API spec
+        endpoint = f"/blocks/{block_id}"
+        response = await client.get(endpoint)
         return response
 
     except Exception as e:
-        logger.error(f"Failed to get page {page_id}: {e}")
+        logger.error(f"Failed to get block {block_id}: {e}")
         return {
-            "error": f"Failed to retrieve page: {str(e)}",
-            "page_id": page_id
+            "error": f"Failed to retrieve block: {str(e)}",
+            "block_id": block_id
         }
