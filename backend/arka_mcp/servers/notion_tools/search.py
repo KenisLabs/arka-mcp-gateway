@@ -1,13 +1,5 @@
-"""
-Search tool for Notion MCP server.
-
-Searches across pages and databases in the workspace.
-"""
 from typing import Dict, Any, Optional
-from .client import NotionAPIClient
-import logging
-
-logger = logging.getLogger(__name__)
+from .base import get_notion_client, handle_notion_error, clean_notion_response
 
 
 async def search(
@@ -18,52 +10,34 @@ async def search(
     page_size: Optional[int] = None,
 ) -> Dict[str, Any]:
     """
-    Perform a search over pages and databases in the workspace.
+    Perform a search over pages and databases in the workspace that your integration has access to.
 
-    This function maps to the Notion API "/v1/search" endpoint and allows you to:
-    - Specify a free-text `query` string to match against page or database titles
-    - Apply a `filter_conditions` object to restrict results to only pages, only databases
-    - Define a `sort` object to order results by timestamp or other properties
-    - Use `start_cursor` for pagination to continue from a previous batch
-    - Use `page_size` to limit the number of results per request
-    - If no `query` is provided, returns all accessible pages and databases
+    This function maps to the Notion API “/v1/search” endpoint and allows you to:
+    - Specify a free-text `query` string to match against page or database titles (and child pages) within the scope of the integration. :contentReference[oaicite:1]{index=1}
+    - Apply a `filter_conditions` object to restrict results to only pages, only databases, or other object-types. :contentReference[oaicite:2]{index=2}
+    - Define a `sort` object to order results by timestamp or other properties. :contentReference[oaicite:3]{index=3}
+    - Use `start_cursor` for pagination to continue from a previous batch, and `page_size` to limit the number of results per request. :contentReference[oaicite:4]{index=4}
+    - If no `query` is provided then it returns all accessible pages and databases shared with the integration (subject to other filter/sort parameters). :contentReference[oaicite:5]{index=5}
 
-    Args:
-        query: Text to search for in titles and content
-        sort: Sort criteria (e.g., {"direction": "ascending", "timestamp": "last_edited_time"})
-        filter_conditions: Filter by object type (e.g., {"property": "object", "value": "page"})
-        start_cursor: Pagination cursor from previous response
-        page_size: Number of results per page (max 100)
-
-    Returns:
-        Search results with pages and databases
-
-    Example:
-        results = await search(query="Project")
-        results = await search(filter_conditions={"property": "object", "value": "page"})
+    Use this function when you want to discover or fetch pages/databases that your integration can access, especially for use-cases like onboarding, indexing or searching workspace content.
     """
     try:
-        client = NotionAPIClient()
+        notion = get_notion_client()
 
-        # Build request body for POST /v1/search
-        request_body = {}
+        search_params = {}
         if query:
-            request_body["query"] = query
+            search_params["query"] = query
         if sort:
-            request_body["sort"] = sort
+            search_params["sort"] = sort
         if filter_conditions:
-            request_body["filter"] = filter_conditions
+            search_params["filter"] = filter_conditions
         if start_cursor:
-            request_body["start_cursor"] = start_cursor
+            search_params["start_cursor"] = start_cursor
         if page_size:
-            request_body["page_size"] = page_size
+            search_params["page_size"] = page_size
 
-        response = await client.post("/search", request_body)
-        return response
+        response = notion.search(**search_params)
+        return clean_notion_response(response)
 
     except Exception as e:
-        logger.error(f"Failed to search Notion: {e}")
-        return {
-            "error": f"Failed to search: {str(e)}",
-            "query": query
-        }
+        return handle_notion_error(e)
