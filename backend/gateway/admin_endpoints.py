@@ -17,6 +17,7 @@ from gateway.models import (
     UserToolAccess,
     User,
     OAuthProviderCredentials,
+    UserCredential,
 )
 from gateway.crypto_utils import encrypt_string, decrypt_string
 from gateway.auth_providers.registry import get_oauth_provider_registry
@@ -637,6 +638,14 @@ async def update_oauth_provider(
             detail=f"No OAuth provider configured for server {server_id}",
         )
 
+    # Track if OAuth credentials are being changed
+    # If client_id or client_secret change, all user tokens need to be invalidated
+    credentials_changed = False
+    if client_id is not None and client_id != provider.client_id:
+        credentials_changed = True
+    if client_secret is not None and client_secret != "***":
+        credentials_changed = True
+
     # Update only provided fields
     if provider_name is not None:
         provider.provider_name = provider_name
@@ -661,6 +670,33 @@ async def update_oauth_provider(
 
     await db.flush()
 
+    invalidated_count = 0
+    if credentials_changed:
+        # Invalidate all user credentials for this server
+        # User tokens were issued by the old OAuth app, so they won't work with the new one
+        result = await db.execute(
+            select(UserCredential).where(
+                UserCredential.server_id == server_id,
+                UserCredential.is_authorized == True
+            )
+        )
+        user_creds = result.scalars().all()
+
+        invalidated_count = len(user_creds)
+        for cred in user_creds:
+            cred.is_authorized = False
+            cred.access_token = None
+            cred.refresh_token = None
+            cred.expires_at = None
+            cred.authorized_at = None
+
+        await db.flush()
+
+        logger.warning(
+            f"Invalidated {invalidated_count} user credentials for {server_id} "
+            f"due to OAuth provider credential change (client_id/client_secret updated)"
+        )
+
     # Clear cached provider to ensure next request uses updated credentials
     registry = get_oauth_provider_registry()
     registry.clear_provider_cache(server_id)
@@ -672,6 +708,7 @@ async def update_oauth_provider(
     return {
         "message": f"OAuth provider updated for server {server_id}",
         "mcp_server_id": server_id,
+        "invalidated_users": invalidated_count
     }
 
 
