@@ -22,8 +22,10 @@ from gateway.models import (
     MCPServerConfiguration,
     OAuthProviderCredentials,
     AuditLog,
+    UserCredential,
 )
 from gateway.crypto_utils import encrypt_string, decrypt_string
+from gateway.auth_providers.registry import get_oauth_provider_registry
 from config import settings
 
 logger = logging.getLogger(__name__)
@@ -484,6 +486,9 @@ async def update_mcp_server(
         if request.is_enabled is not None:
             server.is_enabled = request.is_enabled
 
+        # Track if OAuth credentials are being changed
+        credentials_changed = False
+
         # Update credentials if provided
         if request.credentials:
             result = await db.execute(
@@ -494,6 +499,23 @@ async def update_mcp_server(
             oauth_creds = result.scalar_one_or_none()
 
             if oauth_creds:
+                # Track changes to client_id or client_secret
+                for key, value in request.credentials.items():
+                    # Skip if value is empty or None
+                    if not value:
+                        continue
+
+                    # Check if client_id changed
+                    if key == "client_id":
+                        old_value = getattr(oauth_creds, key, None)
+                        if old_value != value:
+                            credentials_changed = True
+
+                    # Check if client_secret changed (not the masked placeholder)
+                    if "secret" in key.lower() or "password" in key.lower():
+                        if value != "********":
+                            credentials_changed = True
+
                 # Update existing credentials
                 for key, value in request.credentials.items():
                     # Skip if value is empty or None
@@ -523,9 +545,44 @@ async def update_mcp_server(
 
         await db.commit()
 
+        # If OAuth credentials changed, invalidate all user tokens and clear cache
+        invalidated_count = 0
+        if credentials_changed:
+            # Invalidate all user credentials for this server
+            # User tokens were issued by the old OAuth app and won't work with new credentials
+            result = await db.execute(
+                select(UserCredential).where(
+                    UserCredential.server_id == server_id,
+                    UserCredential.is_authorized == True
+                )
+            )
+            user_creds = result.scalars().all()
+
+            invalidated_count = len(user_creds)
+            for cred in user_creds:
+                cred.is_authorized = False
+                cred.access_token = None
+                cred.refresh_token = None
+                cred.expires_at = None
+                cred.authorized_at = None
+
+            await db.commit()
+
+            # Clear cached OAuth provider
+            registry = get_oauth_provider_registry()
+            registry.clear_provider_cache(server_id)
+
+            logger.warning(
+                f"Invalidated {invalidated_count} user credentials for {server_id} "
+                f"due to OAuth credentials change (client_id/client_secret updated)"
+            )
+
         logger.info(f"Admin {user.get('sub')} updated MCP server: {server_id}")
 
-        return {"message": "MCP server updated successfully"}
+        return {
+            "message": "MCP server updated successfully",
+            "invalidated_users": invalidated_count
+        }
 
     except HTTPException:
         raise
