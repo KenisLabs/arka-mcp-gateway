@@ -55,5 +55,17 @@
       "auth_type": "oauth2",
       "default_enabled": true
     }
+    ,
+    {
+      "id": "supabase-mcp",
+      "name": "Supabase MCP Server",
+      "description": "Access Supabase projects, databases, and user management",
+      "status": "available",
+      "type": "supabase",
+      "icon": "supabase",
+      "requires_auth": true,
+      "auth_type": "oauth2",
+      "default_enabled": true
+    }
   ]
 }

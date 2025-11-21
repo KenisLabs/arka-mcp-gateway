@@ -8,6 +8,7 @@ from .gmail import create_gmail_oauth_provider
 from .google_calendar import create_google_calendar_oauth_provider
 from .slack import create_slack_oauth_provider
 from .notion import create_notion_oauth_provider
+from .supabase import create_supabase_oauth_provider
 from config import settings
 from database import get_db
 from gateway.oauth_db import get_oauth_credentials
@@ -107,6 +108,25 @@ class OAuthProviderRegistry:
                 "Notion OAuth credentials not found in environment. "
                 "Will check database when provider is requested."
             )
+        # Initialize Supabase provider from environment variables
+        supa_client_id = getattr(settings, 'supabase_oauth_client_id', None)
+        supa_client_secret = getattr(settings, 'supabase_oauth_client_secret', None)
+        supa_redirect = getattr(settings, 'supabase_oauth_redirect_uri', None)
+        if supa_client_id and supa_client_secret:
+            try:
+                self._providers["supabase-mcp"] = create_supabase_oauth_provider(
+                    client_id=supa_client_id,
+                    client_secret=supa_client_secret,
+                    redirect_uri=supa_redirect or f"{settings.backend_url}/servers/supabase-mcp/auth-callback"
+                )
+                logger.info("Supabase OAuth provider initialized from environment variables")
+            except Exception as e:
+                logger.error(f"Failed to initialize Supabase OAuth provider: {e}")
+        else:
+            logger.info(
+                "Supabase OAuth credentials not found in environment. "
+                "Will check database when provider is requested."
+            )
 
         # TODO: Initialize other providers when implemented (Jira, etc.)
 
@@ -159,6 +179,16 @@ class OAuthProviderRegistry:
             if credentials:
                 logger.info(f"Loading OAuth provider for {server_id} from database")
 
+                # Supabase integration
+                if credentials['provider_name'] == 'supabase':
+                    provider = create_supabase_oauth_provider(
+                        client_id=credentials['client_id'],
+                        client_secret=credentials['client_secret'],
+                        redirect_uri=credentials['redirect_uri'],
+                        scopes=credentials.get('scopes', [])
+                    )
+                    self._providers[server_id] = provider
+                    return provider
                 # Create provider based on provider_name
                 if credentials['provider_name'] == 'github':
                     provider = create_github_oauth_provider(

@@ -241,6 +241,28 @@
       ],
       "popular": false
     }
+    ,
+    {
+      "id": "supabase-mcp",
+      "name": "Supabase",
+      "display_name": "Supabase MCP Server",
+      "description": "Access Supabase projects, databases, and user management. List and manage your Supabase projects.",
+      "category": "Development",
+      "icon": "supabase",
+      "version": "1.0.0",
+      "publisher": "Community",
+      "requires_auth": true,
+      "auth_type": "oauth2",
+      "auth_fields": [
+        {"name": "client_id", "label": "Supabase Integration Client ID", "type": "text", "required": true, "placeholder": "supabase-integration-id", "help_text": "OAuth Client ID from Supabase Integrations"},
+        {"name": "client_secret", "label": "Supabase Integration Secret", "type": "password", "required": true, "placeholder": "supabase-secret-xxxxxxxxxxxx", "help_text": "OAuth Client Secret from Supabase Integrations"},
+        {"name": "redirect_uri", "label": "Redirect URI", "type": "text", "required": true, "placeholder": "http://localhost:8000/servers/supabase-mcp/auth-callback", "help_text": "Must match the redirect URI configured in your Supabase integration settings"}
+      ],
+      "documentation_url": "https://supabase.com/docs/guides/integrations/build-a-supabase-integration",
+      "setup_instructions": "1. Go to Supabase Dashboard > Settings > Integrations\n2. Create a new integration\n3. Add your redirect URI\n4. Copy Client ID and Secret",
+      "capabilities": ["List projects", "Get project details", "Pause project"],
+      "popular": false
+    }
   ],
   "_disabled_catalog": [
     {

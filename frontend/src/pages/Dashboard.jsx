@@ -66,6 +66,11 @@ const floatingIcons = [
     size: 40,
   },
   {
+    icon: "https://api.iconify.design/logos:supabase-icon.svg",
+    position: "bottom-[30%] left-[25%]",
+    size: 40,
+  },
+  {
     icon: "https://api.iconify.design/logos:linkedin-icon.svg",
     position: "bottom-[20%] right-[8%]",
     size: 45,

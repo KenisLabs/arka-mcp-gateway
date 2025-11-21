@@ -8,18 +8,24 @@ Provides endpoints to:
 - Toggle MCP enabled/disabled for user
 - OAuth authorization flow (URL generation and callback)
 """
+
 from fastapi import APIRouter, HTTPException, Depends, Request
 from fastapi.responses import RedirectResponse
 from typing import List, Optional, Dict
 from pydantic import BaseModel
 from datetime import datetime
 from .registry import get_registry, ServerRegistry
-from .models import MCPServerMetadata, OrganizationToolAccess, UserToolAccess, MCPServerConfiguration
+from .models import (
+    MCPServerMetadata,
+    OrganizationToolAccess,
+    UserToolAccess,
+    MCPServerConfiguration,
+)
 from .user_preferences import (
     get_preferences_store,
     UserPreferencesStore,
     UserMCPPreference,
-    MCPCredentials
+    MCPCredentials,
 )
 from .auth_providers.registry import get_oauth_provider_registry, OAuthProviderRegistry
 from auth.middleware import get_user_email
@@ -41,6 +47,7 @@ _oauth_states: Dict[str, Dict[str, str]] = {}
 
 class UserMCPInfo(BaseModel):
     """MCP server info combined with user's authorization/enabled status"""
+
     # Metadata from registry
     id: str
     name: str
@@ -60,6 +67,7 @@ class UserMCPInfo(BaseModel):
 
 class ToggleRequest(BaseModel):
     """Request body for toggling MCP enabled/disabled"""
+
     enabled: bool
 
 
@@ -82,7 +90,7 @@ async def list_user_servers(
     registry: ServerRegistry = Depends(get_registry),
     preferences_store: UserPreferencesStore = Depends(get_preferences_store),
     user_email: str = Depends(get_user_email),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Get list of MCP servers for the current user with their preferences.
@@ -104,8 +112,7 @@ async def list_user_servers(
     # Get organization-level access settings
     result = await db.execute(select(OrganizationToolAccess))
     org_access_map = {
-        access.mcp_server_id: access.enabled
-        for access in result.scalars().all()
+        access.mcp_server_id: access.enabled for access in result.scalars().all()
     }
 
     # Get user-level access overrides
@@ -113,8 +120,7 @@ async def list_user_servers(
         select(UserToolAccess).where(UserToolAccess.user_email == user_email)
     )
     user_access_map = {
-        access.mcp_server_id: access.enabled
-        for access in result.scalars().all()
+        access.mcp_server_id: access.enabled for access in result.scalars().all()
     }
 
     result = []
@@ -126,7 +132,9 @@ async def list_user_servers(
         if server_id not in configured_server_ids:
             continue
 
-        org_enabled = org_access_map.get(server_id, True)  # Default to enabled for configured servers
+        org_enabled = org_access_map.get(
+            server_id, True
+        )  # Default to enabled for configured servers
         user_override = user_access_map.get(server_id)
 
         # Calculate effective access: org must be enabled, then check user override
@@ -148,20 +156,26 @@ async def list_user_servers(
         if pref and pref.credentials and pref.credentials.expires_at:
             expires_at = pref.credentials.expires_at.isoformat()
 
-        result.append(UserMCPInfo(
-            id=server.id,
-            name=server.name,
-            description=server.description,
-            status=server.status,
-            type=server.type,
-            icon=server.icon,
-            requires_auth=server.requires_auth,
-            auth_type=server.auth_type,
-            is_authorized=pref.is_authorized if pref else False,
-            is_enabled=pref.is_enabled if pref else server.default_enabled,
-            authorized_at=pref.authorized_at.isoformat() if pref and pref.authorized_at else None,
-            expires_at=expires_at
-        ))
+        result.append(
+            UserMCPInfo(
+                id=server.id,
+                name=server.name,
+                description=server.description,
+                status=server.status,
+                type=server.type,
+                icon=server.icon,
+                requires_auth=server.requires_auth,
+                auth_type=server.auth_type,
+                is_authorized=pref.is_authorized if pref else False,
+                is_enabled=pref.is_enabled if pref else server.default_enabled,
+                authorized_at=(
+                    pref.authorized_at.isoformat()
+                    if pref and pref.authorized_at
+                    else None
+                ),
+                expires_at=expires_at,
+            )
+        )
 
     return result
 
@@ -183,10 +197,7 @@ async def get_server(server_id: str, registry: ServerRegistry = Depends(get_regi
     server_metadata = registry.get_server_metadata(server_id)
 
     if server_metadata is None:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Server '{server_id}' not found"
-        )
+        raise HTTPException(status_code=404, detail=f"Server '{server_id}' not found")
 
     return server_metadata
 
@@ -196,7 +207,7 @@ async def toggle_server_enabled(
     server_id: str,
     toggle_request: ToggleRequest,
     preferences_store: UserPreferencesStore = Depends(get_preferences_store),
-    user_email: str = Depends(get_user_email)
+    user_email: str = Depends(get_user_email),
 ):
     """
     Toggle MCP enabled/disabled for the current user.
@@ -214,9 +225,7 @@ async def toggle_server_enabled(
     """
     try:
         updated_pref = await preferences_store.toggle_mcp_enabled(
-            user_email,
-            server_id,
-            toggle_request.enabled
+            user_email, server_id, toggle_request.enabled
         )
         return updated_pref
     except ValueError as e:
@@ -229,7 +238,7 @@ async def disconnect_server(
     preferences_store: UserPreferencesStore = Depends(get_preferences_store),
     provider_registry: OAuthProviderRegistry = Depends(get_oauth_provider_registry),
     user_email: str = Depends(get_user_email),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Disconnect/revoke OAuth authorization for a specific MCP server.
@@ -254,13 +263,16 @@ async def disconnect_server(
 
         if not server_pref or not server_pref.is_authorized:
             raise HTTPException(
-                status_code=404,
-                detail=f"Server '{server_id}' is not authorized"
+                status_code=404, detail=f"Server '{server_id}' is not authorized"
             )
 
         # Try to revoke token with OAuth provider (optional - may fail if provider doesn't support it)
         provider = await provider_registry.get_provider_async(server_id, db)
-        if provider and server_pref.credentials and server_pref.credentials.access_token:
+        if (
+            provider
+            and server_pref.credentials
+            and server_pref.credentials.access_token
+        ):
             try:
                 await provider.revoke_token(server_pref.credentials.access_token)
                 logger.info(f"Successfully revoked OAuth token for {server_id}")
@@ -275,7 +287,7 @@ async def disconnect_server(
 
         return {
             "success": True,
-            "message": f"Successfully disconnected from {server_id}"
+            "message": f"Successfully disconnected from {server_id}",
         }
 
     except HTTPException:
@@ -289,6 +301,7 @@ async def disconnect_server(
 
 class AuthURLResponse(BaseModel):
     """Response containing OAuth authorization URL"""
+
     auth_url: str
     state: str
 
@@ -299,7 +312,7 @@ async def get_authorization_url(
     request: Request,
     provider_registry: OAuthProviderRegistry = Depends(get_oauth_provider_registry),
     user_email: str = Depends(get_user_email),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Generate OAuth authorization URL for a specific MCP server.
@@ -324,7 +337,7 @@ async def get_authorization_url(
     if not provider:
         raise HTTPException(
             status_code=404,
-            detail=f"OAuth provider not configured for server '{server_id}'"
+            detail=f"OAuth provider not configured for server '{server_id}'",
         )
 
     # Generate random state for CSRF protection
@@ -334,7 +347,7 @@ async def get_authorization_url(
     _oauth_states[state] = {
         "user_email": user_email,
         "server_id": server_id,
-        "created_at": datetime.utcnow().isoformat()
+        "created_at": datetime.utcnow().isoformat(),
     }
 
     # Generate authorization URL
@@ -354,7 +367,7 @@ async def oauth_callback(
     error_description: Optional[str] = None,
     provider_registry: OAuthProviderRegistry = Depends(get_oauth_provider_registry),
     preferences_store: UserPreferencesStore = Depends(get_preferences_store),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """
     OAuth callback endpoint - handles redirect from OAuth provider.
@@ -388,8 +401,7 @@ async def oauth_callback(
     # Validate state parameter
     if not state or state not in _oauth_states:
         raise HTTPException(
-            status_code=400,
-            detail="Invalid or expired OAuth state parameter"
+            status_code=400, detail="Invalid or expired OAuth state parameter"
         )
 
     # Get state data and remove it (one-time use)
@@ -400,15 +412,13 @@ async def oauth_callback(
     # Verify server_id matches
     if server_id != expected_server_id:
         raise HTTPException(
-            status_code=400,
-            detail="Server ID mismatch in OAuth callback"
+            status_code=400, detail="Server ID mismatch in OAuth callback"
         )
 
     # Validate code parameter
     if not code:
         raise HTTPException(
-            status_code=400,
-            detail="Missing authorization code in OAuth callback"
+            status_code=400, detail="Missing authorization code in OAuth callback"
         )
 
     # Get OAuth provider
@@ -416,7 +426,7 @@ async def oauth_callback(
     if not provider:
         raise HTTPException(
             status_code=404,
-            detail=f"OAuth provider not configured for server '{server_id}'"
+            detail=f"OAuth provider not configured for server '{server_id}'",
         )
 
     try:
@@ -427,19 +437,17 @@ async def oauth_callback(
         credentials = MCPCredentials(
             access_token=token_response.access_token,
             refresh_token=token_response.refresh_token,
-            expires_at=None  # TODO: Calculate expiry from expires_in
+            expires_at=None,  # TODO: Calculate expiry from expires_in
         )
 
-        await preferences_store.authorize_mcp(
-            user_email,
-            server_id,
-            credentials
-        )
+        await preferences_store.authorize_mcp(user_email, server_id, credentials)
 
         logger.info(f"Successfully authorized {server_id} for {user_email}")
 
         # Redirect back to dashboard with success message
-        return RedirectResponse(url=f"{settings.FRONTEND_URL}/dashboard?auth_success=true")
+        return RedirectResponse(
+            url=f"{settings.FRONTEND_URL}/dashboard?auth_success=true"
+        )
 
     except HTTPException as e:
         # Re-raise HTTP exceptions
