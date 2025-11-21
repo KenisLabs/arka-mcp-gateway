@@ -47,7 +47,22 @@ class NotionAPIClient:
     """
 
     BASE_URL = "https://api.notion.com/v1"
-    NOTION_VERSION = "2022-06-28"  # API version required by Notion
+
+    # Notion API Version
+    #
+    # Using: 2022-06-28 (Stable, widely supported)
+    # Latest: 2025-09-03 (Introduces breaking changes with multi-source databases)
+    #
+    # Version 2025-09-03 changes:
+    # - Database operations use data_source_id instead of database_id
+    # - New /v1/data_sources/* endpoints for data source management
+    # - /v1/databases/* endpoints now refer to database containers
+    #
+    # We maintain compatibility with 2022-06-28. Tools are designed to support
+    # both database_id (legacy) and data_source_id (new) patterns.
+    #
+    # Migration guide: https://developers.notion.com/docs/upgrade-guide-2025-09-03
+    NOTION_VERSION = "2022-06-28"
     DEFAULT_TIMEOUT = 30.0
     MAX_RETRIES = 3
 

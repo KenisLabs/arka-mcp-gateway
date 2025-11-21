@@ -134,6 +134,20 @@ class OAuthProviderRegistry:
         """
         return server_id in self._providers
 
+    def clear_provider_cache(self, server_id: str):
+        """
+        Clear cached OAuth provider for a specific server.
+
+        This should be called when OAuth credentials are updated or deleted
+        to ensure the next request loads fresh credentials from the database.
+
+        Args:
+            server_id: MCP server ID to clear from cache
+        """
+        if server_id in self._providers:
+            del self._providers[server_id]
+            logger.info(f"Cleared OAuth provider cache for {server_id}")
+
     async def get_provider_async(self, server_id: str, db) -> Optional[OAuthProvider]:
         """
         Get OAuth provider for a specific server, checking database first.

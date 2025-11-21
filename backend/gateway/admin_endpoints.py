@@ -19,6 +19,7 @@ from gateway.models import (
     OAuthProviderCredentials,
 )
 from gateway.crypto_utils import encrypt_string, decrypt_string
+from gateway.auth_providers.registry import get_oauth_provider_registry
 from auth.rbac import require_admin
 from auth.password_utils import generate_temporary_password, hash_password
 from pydantic import BaseModel, EmailStr
@@ -572,6 +573,10 @@ async def create_oauth_provider(
     db.add(provider)
     await db.flush()
 
+    # Clear any cached provider to ensure fresh credentials are loaded
+    registry = get_oauth_provider_registry()
+    registry.clear_provider_cache(mcp_server_id)
+
     logger.info(
         f"Admin {admin.get('sub')} created OAuth provider for server {mcp_server_id}"
     )
@@ -656,6 +661,10 @@ async def update_oauth_provider(
 
     await db.flush()
 
+    # Clear cached provider to ensure next request uses updated credentials
+    registry = get_oauth_provider_registry()
+    registry.clear_provider_cache(server_id)
+
     logger.info(
         f"Admin {admin.get('sub')} updated OAuth provider for server {server_id}"
     )
@@ -698,6 +707,10 @@ async def delete_oauth_provider(
 
     await db.delete(provider)
     await db.flush()
+
+    # Clear cached provider after deletion
+    registry = get_oauth_provider_registry()
+    registry.clear_provider_cache(server_id)
 
     logger.info(
         f"Admin {admin.get('sub')} deleted OAuth provider for server {server_id}"
