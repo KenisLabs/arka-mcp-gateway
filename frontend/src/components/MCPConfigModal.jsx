@@ -1,145 +1,168 @@
-import { useState } from 'react'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Copy, CheckCircle, AlertCircle } from 'lucide-react'
-import api from '@/lib/api'
+import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Copy, CheckCircle, AlertCircle } from "lucide-react";
+import api from "@/lib/api";
 
 export function MCPConfigModal({ open, onOpenChange, clientType }) {
-  const [generatedToken, setGeneratedToken] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
-  const [copied, setCopied] = useState(false)
+  const [generatedToken, setGeneratedToken] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [copied, setCopied] = useState(false);
 
   const handleGenerateToken = async () => {
-    setLoading(true)
-    setError(null)
+    setLoading(true);
+    setError(null);
 
     try {
-      const response = await api.post('/api/mcp-tokens/', {})
+      const response = await api.post("/api/mcp-tokens/", {});
 
-      setGeneratedToken(response.data)
+      setGeneratedToken(response.data);
     } catch (err) {
-      console.error('Failed to generate token:', err)
-      setError(err.response?.data?.detail || 'Failed to generate token')
+      console.error("Failed to generate token:", err);
+      setError(err.response?.data?.detail || "Failed to generate token");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleCopyConfig = () => {
-    const config = getConfigForClient()
-    navigator.clipboard.writeText(config)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
+    const config = getConfigForClient();
+    navigator.clipboard.writeText(config);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const getConfigForClient = () => {
-    if (!generatedToken) return ''
+    if (!generatedToken) return "";
 
     // Use backend URL from environment variable or derive from current origin
-    const backendUrl = import.meta.env.VITE_API_URL || window.location.origin
+    const backendUrl = import.meta.env.VITE_API_URL || window.location.origin;
 
     // Configuration for VS Code and Cursor (http type with headers)
     const httpConfig = {
-      type: 'http',
+      type: "http",
       url: `${backendUrl}/mcp`,
       headers: {
-        Authorization: `Bearer ${generatedToken.token}`
-      }
-    }
+        Authorization: `Bearer ${generatedToken.token}`,
+      },
+    };
 
     // Configuration for Claude Desktop (streamable-http transport)
     const claudeConfig = {
-      url: `${backendUrl}/mcp`,
-      transport: {
-        type: 'streamable-http',
-        headers: {
-          Authorization: `Bearer ${generatedToken.token}`
-        }
-      }
+      type: "http",
+      command: "npx",
+      args: [
+        "mcp-remote",
+        `${backendUrl}/mcp`,
+        "--header",
+        "Authorization: Bearer ${AUTH_TOKEN}",
+      ],
+      env: {
+        AUTH_TOKEN: generatedToken.token,
+      },
+    };
+
+    if (clientType === "vscode") {
+      return JSON.stringify(
+        {
+          mcpServers: {
+            "arka-mcp-gateway": httpConfig,
+          },
+        },
+        null,
+        2
+      );
+    } else if (clientType === "cursor") {
+      return JSON.stringify(
+        {
+          mcpServers: {
+            "arka-mcp-gateway": httpConfig,
+          },
+        },
+        null,
+        2
+      );
+    } else if (clientType === "claude") {
+      return JSON.stringify(
+        {
+          mcpServers: {
+            "arka-mcp-gateway": claudeConfig,
+          },
+        },
+        null,
+        2
+      );
     }
 
-    if (clientType === 'vscode') {
-      return JSON.stringify({
-        "mcpServers": {
-          "arka-mcp-gateway": httpConfig
-        }
-      }, null, 2)
-    } else if (clientType === 'cursor') {
-      return JSON.stringify({
-        "mcpServers": {
-          "arka-mcp-gateway": httpConfig
-        }
-      }, null, 2)
-    } else if (clientType === 'claude') {
-      return JSON.stringify({
-        "mcpServers": {
-          "arka-mcp-gateway": claudeConfig
-        }
-      }, null, 2)
-    }
-
-    return JSON.stringify(httpConfig, null, 2)
-  }
+    return JSON.stringify(httpConfig, null, 2);
+  };
 
   const getInstructions = () => {
-    if (clientType === 'vscode') {
+    if (clientType === "vscode") {
       return {
-        title: 'VS Code Setup',
+        title: "VS Code Setup",
         steps: [
-          'Open VS Code Settings (Cmd/Ctrl + ,)',
+          "Open VS Code Settings (Cmd/Ctrl + ,)",
           'Search for "MCP Servers"',
           'Click "Edit in settings.json"',
-          'Paste the configuration below',
-          'Reload VS Code'
+          "Paste the configuration below",
+          "Reload VS Code",
         ],
-        configPath: '~/.vscode/mcp-servers.json or in your settings.json'
-      }
-    } else if (clientType === 'claude') {
+        configPath: "~/.vscode/mcp-servers.json or in your settings.json",
+      };
+    } else if (clientType === "claude") {
       return {
-        title: 'Claude Desktop Setup',
+        title: "Claude Desktop Setup",
         steps: [
-          'Open Claude Desktop settings',
-          'Navigate to Developer settings',
-          'Add MCP server configuration',
-          'Paste the configuration below',
-          'Restart Claude Desktop'
+          "Open Claude Desktop settings",
+          "Navigate to Developer settings",
+          "Add MCP server configuration",
+          "Paste the configuration below",
+          "Restart Claude Desktop",
         ],
-        configPath: '~/Library/Application Support/Claude/claude_desktop_config.json (macOS)'
-      }
-    } else if (clientType === 'cursor') {
+        configPath:
+          "~/Library/Application Support/Claude/claude_desktop_config.json (macOS)",
+      };
+    } else if (clientType === "cursor") {
       return {
-        title: 'Cursor Setup',
+        title: "Cursor Setup",
         steps: [
-          'Open Cursor Settings',
-          'Navigate to MCP Servers',
+          "Open Cursor Settings",
+          "Navigate to MCP Servers",
           'Click "Add Server"',
-          'Paste the configuration below',
-          'Restart Cursor'
+          "Paste the configuration below",
+          "Restart Cursor",
         ],
-        configPath: '~/.cursor/mcp-servers.json'
-      }
+        configPath: "~/.cursor/mcp-servers.json",
+      };
     }
 
     // Default fallback
     return {
-      title: 'MCP Client Setup',
-      steps: ['Configure your MCP client with the settings below'],
-      configPath: 'Client-specific configuration file'
-    }
-  }
+      title: "MCP Client Setup",
+      steps: ["Configure your MCP client with the settings below"],
+      configPath: "Client-specific configuration file",
+    };
+  };
 
-  const instructions = getInstructions()
+  const instructions = getInstructions();
 
   const handleClose = () => {
-    setGeneratedToken(null)
-    setError(null)
-    setCopied(false)
-    onOpenChange(false)
-  }
+    setGeneratedToken(null);
+    setError(null);
+    setCopied(false);
+    onOpenChange(false);
+  };
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -147,7 +170,8 @@ export function MCPConfigModal({ open, onOpenChange, clientType }) {
         <DialogHeader>
           <DialogTitle>{instructions.title}</DialogTitle>
           <DialogDescription>
-            Generate an access token and configure your {clientType} to connect to Arka MCP Gateway
+            Generate an access token and configure your {clientType} to connect
+            to Arka MCP Gateway
           </DialogDescription>
         </DialogHeader>
 
@@ -157,7 +181,8 @@ export function MCPConfigModal({ open, onOpenChange, clientType }) {
               {/* Token Generation Form */}
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">
-                  Generate a new MCP access token for your {clientType}. This will automatically revoke any existing token.
+                  Generate a new MCP access token for your {clientType}. This
+                  will automatically revoke any existing token.
                 </p>
 
                 {error && (
@@ -172,7 +197,7 @@ export function MCPConfigModal({ open, onOpenChange, clientType }) {
                   disabled={loading}
                   className="w-full"
                 >
-                  {loading ? 'Generating...' : 'Generate Token'}
+                  {loading ? "Generating..." : "Generate Token"}
                 </Button>
               </div>
             </>
@@ -182,9 +207,11 @@ export function MCPConfigModal({ open, onOpenChange, clientType }) {
               <Alert>
                 <CheckCircle className="size-4 text-green-600" />
                 <AlertDescription>
-                  Token generated successfully! Copy the configuration below and save it securely.
+                  Token generated successfully! Copy the configuration below and
+                  save it securely.
                   <strong className="block mt-2 text-orange-600">
-                    ⚠️ This token will only be shown once. Make sure to save it now!
+                    ⚠️ This token will only be shown once. Make sure to save it
+                    now!
                   </strong>
                 </AlertDescription>
               </Alert>
@@ -198,7 +225,10 @@ export function MCPConfigModal({ open, onOpenChange, clientType }) {
                   ))}
                 </ol>
                 <p className="text-xs text-muted-foreground mt-2 break-words">
-                  Config file location: <code className="bg-muted px-1 py-0.5 rounded break-all">{instructions.configPath}</code>
+                  Config file location:{" "}
+                  <code className="bg-muted px-1 py-0.5 rounded break-all">
+                    {instructions.configPath}
+                  </code>
                 </p>
               </div>
 
@@ -236,15 +266,21 @@ export function MCPConfigModal({ open, onOpenChange, clientType }) {
                 <div className="space-y-2 text-sm">
                   <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                     <span className="text-muted-foreground">Token Name:</span>
-                    <span className="font-medium break-words">{generatedToken.token_name}</span>
+                    <span className="font-medium break-words">
+                      {generatedToken.token_name}
+                    </span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                     <span className="text-muted-foreground">Token ID:</span>
-                    <span className="font-mono text-xs break-all">{generatedToken.token_id}</span>
+                    <span className="font-mono text-xs break-all">
+                      {generatedToken.token_id}
+                    </span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                     <span className="text-muted-foreground">Created:</span>
-                    <span className="break-words">{new Date(generatedToken.created_at).toLocaleString()}</span>
+                    <span className="break-words">
+                      {new Date(generatedToken.created_at).toLocaleString()}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -260,5 +296,5 @@ export function MCPConfigModal({ open, onOpenChange, clientType }) {
         </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

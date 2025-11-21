@@ -415,6 +415,12 @@ async def add_mcp_server(
 
         await db.commit()
 
+        # Clear cached OAuth provider to ensure fresh credentials are loaded on next request
+        if catalog_server["requires_auth"] and request.credentials:
+            registry = get_oauth_provider_registry()
+            registry.clear_provider_cache(request.server_id)
+            logger.info(f"Cleared OAuth provider cache for newly created server: {request.server_id}")
+
         logger.info(f"Admin {user.get('sub')} added MCP server: {request.server_id}")
 
         return {
@@ -623,6 +629,17 @@ async def remove_mcp_server(
                 detail=f"MCP server '{server_id}' not found",
             )
 
+        # Delete all user credentials for this server
+        user_creds_result = await db.execute(
+            select(UserCredential).where(
+                UserCredential.server_id == server_id
+            )
+        )
+        user_creds = user_creds_result.scalars().all()
+        deleted_user_creds_count = len(user_creds)
+        for cred in user_creds:
+            await db.delete(cred)
+
         # Delete OAuth credentials
         cred_result = await db.execute(
             select(OAuthProviderCredentials).where(
@@ -648,9 +665,23 @@ async def remove_mcp_server(
 
         await db.commit()
 
+        # Clear cached OAuth provider when server is deleted
+        registry = get_oauth_provider_registry()
+        registry.clear_provider_cache(server_id)
+        logger.info(f"Cleared OAuth provider cache for deleted server: {server_id}")
+
+        if deleted_user_creds_count > 0:
+            logger.warning(
+                f"Deleted {deleted_user_creds_count} user credential(s) for {server_id} "
+                f"during server removal"
+            )
+
         logger.info(f"Admin {user.get('sub')} removed MCP server: {server_id}")
 
-        return {"message": "MCP server removed successfully"}
+        return {
+            "message": "MCP server removed successfully",
+            "deleted_user_credentials": deleted_user_creds_count
+        }
 
     except HTTPException:
         raise
