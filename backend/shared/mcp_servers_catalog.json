@@ -262,6 +262,27 @@
       "setup_instructions": "1. Go to Supabase Dashboard > Settings > Integrations\n2. Create a new integration\n3. Add your redirect URI\n4. Copy Client ID and Secret",
       "capabilities": ["List projects", "Get project details", "Pause project"],
       "popular": false
+    },
+    {
+      "id": "gtasks-mcp",
+      "name": "Google Tasks",
+      "display_name": "Google Tasks MCP Server",
+      "description": "Manage Google Tasks lists and tasks programmatically.",
+      "category": "Productivity",
+      "icon": "tasks",
+      "version": "1.0.0",
+      "publisher": "Anthropic",
+      "requires_auth": true,
+      "auth_type": "oauth2",
+      "auth_fields": [
+        {"name": "client_id", "label": "Google OAuth Client ID", "type": "text", "required": true, "placeholder": "xxxxxxxxxxxx.apps.googleusercontent.com", "help_text": "OAuth Client ID from Google Cloud Console."},
+        {"name": "client_secret", "label": "Google OAuth Client Secret", "type": "password", "required": true, "placeholder": "GOCSPX-xxxxxxxxxxxxxxxxxxxx", "help_text": "OAuth Client Secret from Google Cloud Console."},
+        {"name": "redirect_uri", "label": "Redirect URI", "type": "text", "required": true, "placeholder": "http://localhost:8000/servers/gtasks-mcp/auth-callback", "help_text": "Must match the redirect URI configured in your Google Cloud Console OAuth credentials"}
+      ],
+      "documentation_url": "https://developers.google.com/tasks/reference/rest",
+      "setup_instructions": "1. Go to Google Cloud Console\n2. Create or select a project\n3. Enable Google Tasks API\n4. Create OAuth 2.0 credentials (Web application)\n5. Add authorized redirect URI\n6. Copy Client ID and Client Secret",
+      "capabilities": ["Manage task lists", "Create and update tasks", "Query task list contents"],
+      "popular": false
     }
   ],
   "_disabled_catalog": [

@@ -8,6 +8,7 @@ from .gmail import create_gmail_oauth_provider
 from .google_calendar import create_google_calendar_oauth_provider
 from .slack import create_slack_oauth_provider
 from .notion import create_notion_oauth_provider
+from .google_tasks import create_google_tasks_oauth_provider
 from .supabase import create_supabase_oauth_provider
 from config import settings
 from database import get_db
@@ -127,6 +128,26 @@ class OAuthProviderRegistry:
                 "Supabase OAuth credentials not found in environment. "
                 "Will check database when provider is requested."
             )
+        # Initialize Google Tasks provider from environment variables
+        tasks_client_id = getattr(settings, 'google_tasks_oauth_client_id', None)
+        tasks_client_secret = getattr(settings, 'google_tasks_oauth_client_secret', None)
+        tasks_redirect_uri = getattr(settings, 'google_tasks_oauth_redirect_uri', None)
+
+        if tasks_client_id and tasks_client_secret:
+            try:
+                self._providers["gtasks-mcp"] = create_google_tasks_oauth_provider(
+                    client_id=tasks_client_id,
+                    client_secret=tasks_client_secret,
+                    redirect_uri=tasks_redirect_uri or f"{settings.backend_url}/servers/gtasks-mcp/auth-callback"
+                )
+                logger.info("Google Tasks OAuth provider initialized from environment variables")
+            except Exception as e:
+                logger.error(f"Failed to initialize Google Tasks OAuth provider: {e}")
+        else:
+            logger.info(
+                "Google Tasks OAuth credentials not found in environment. "
+                "Will check database when provider is requested."
+            )
 
         # TODO: Initialize other providers when implemented (Jira, etc.)
 
@@ -230,6 +251,16 @@ class OAuthProviderRegistry:
                         client_secret=credentials['client_secret'],  # Already decrypted
                         redirect_uri=credentials['redirect_uri'],
                         scopes=credentials['scopes']
+                    )
+                    # Cache the provider
+                    self._providers[server_id] = provider
+                    return provider
+                elif credentials['provider_name'] == 'google_tasks':
+                    provider = create_google_tasks_oauth_provider(
+                        client_id=credentials['client_id'],
+                        client_secret=credentials['client_secret'],  # Already decrypted
+                        redirect_uri=credentials['redirect_uri'],
+                        scopes=credentials.get('scopes', [])
                     )
                     # Cache the provider
                     self._providers[server_id] = provider

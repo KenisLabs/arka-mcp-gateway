@@ -66,6 +66,17 @@
       "requires_auth": true,
       "auth_type": "oauth2",
       "default_enabled": true
+    },
+    {
+      "id": "gtasks-mcp",
+      "name": "Google Tasks MCP Server",
+      "description": "Manage Google Tasks lists and tasks",
+      "status": "available",
+      "type": "google_tasks",
+      "icon": "tasks",
+      "requires_auth": true,
+      "auth_type": "oauth2",
+      "default_enabled": true
     }
   ]
 }
