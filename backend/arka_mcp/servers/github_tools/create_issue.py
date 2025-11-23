@@ -1,5 +1,6 @@
 from typing import Any, List, Optional
 
+
 async def create_issue(
     owner: str,
     repo: str,
@@ -35,7 +36,7 @@ async def create_issue(
             title="New Feature Request",
             body="Please add a dark mode.",
             assignees=["octocat", "hubot"],
-            labels=["enhancement", "ui"],
+            labels=["example-label"],
         )
     """
     from .client import GitHubAPIClient
