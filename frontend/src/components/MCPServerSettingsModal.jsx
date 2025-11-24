@@ -23,6 +23,8 @@ function MCPServerSettingsModal({ server, onClose, onSuccess }) {
   const [loading, setLoading] = useState(false)
   const [loadingTools, setLoadingTools] = useState(true)
   const [error, setError] = useState('')
+  const [secretEditMode, setSecretEditMode] = useState(false)
+  const [newSecret, setNewSecret] = useState('')
 
   useEffect(() => {
     fetchServerData()
@@ -85,10 +87,22 @@ function MCPServerSettingsModal({ server, onClose, onSuccess }) {
     setLoading(true)
 
     try {
-      // Update OAuth credentials if changed
+      // Build credentials payload
+      const credentialsPayload = {
+        client_id: credentials.client_id,
+        redirect_uri: credentials.redirect_uri,
+        scopes: credentials.scopes
+      }
+
+      // Only include client_secret if in edit mode and has value
+      if (secretEditMode && newSecret.trim()) {
+        credentialsPayload.client_secret = newSecret
+      }
+
+      // Update OAuth credentials
       await api.put(
         `/api/admin/mcp-servers/${server.server_id}`,
-        { credentials }
+        { credentials: credentialsPayload }
       )
 
       // Update tool permissions
@@ -101,6 +115,13 @@ function MCPServerSettingsModal({ server, onClose, onSuccess }) {
         `/api/admin/servers/${server.server_id}/tools/bulk-update`,
         { tools: toolUpdates }
       )
+
+      // Reset secret edit mode
+      setSecretEditMode(false)
+      setNewSecret('')
+
+      // Refresh credentials to get new hint
+      await fetchServerData()
 
       setLoading(false)
       onSuccess()
@@ -167,16 +188,59 @@ function MCPServerSettingsModal({ server, onClose, onSuccess }) {
 
               <div className="space-y-2">
                 <Label htmlFor="client_secret">Client Secret</Label>
-                <Input
-                  id="client_secret"
-                  type="password"
-                  value={credentials.client_secret || ''}
-                  onChange={(e) => handleCredentialChange('client_secret', e.target.value)}
-                  placeholder="Enter new secret or leave unchanged"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Leave blank to keep the existing secret
-                </p>
+                {!secretEditMode ? (
+                  // Read-only mode - show hint with Update button
+                  <div className="flex gap-2">
+                    <Input
+                      id="client_secret"
+                      type="text"
+                      value={credentials.client_secret_hint || '••••'}
+                      readOnly
+                      disabled
+                      className="flex-1 font-mono bg-muted"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setSecretEditMode(true)
+                        setNewSecret('')
+                      }}
+                    >
+                      Update
+                    </Button>
+                  </div>
+                ) : (
+                  // Edit mode - allow input with Cancel button
+                  <div className="flex gap-2">
+                    <Input
+                      id="client_secret"
+                      type="password"
+                      value={newSecret}
+                      onChange={(e) => setNewSecret(e.target.value)}
+                      placeholder="Enter new client secret"
+                      className="flex-1"
+                      autoFocus
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => {
+                        setSecretEditMode(false)
+                        setNewSecret('')
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                )}
+                {credentials.client_secret_configured && !secretEditMode && (
+                  <p className="text-xs text-muted-foreground">
+                    Last updated: {credentials.client_secret_updated_at
+                      ? new Date(credentials.client_secret_updated_at).toLocaleDateString()
+                      : 'Unknown'}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
