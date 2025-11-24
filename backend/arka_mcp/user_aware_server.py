@@ -6,12 +6,14 @@ Every MCP request must include a JWT Bearer token in the Authorization header.
 
 Uses middleware to authenticate requests and store user context for tool execution.
 """
+
+import logging
 import os
 import re
-import requests
 import json
 from typing import List, Optional
 from contextvars import ContextVar
+import requests
 from fastapi import Request, HTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 from fastmcp import FastMCP
@@ -20,17 +22,17 @@ from arka_mcp.auth_middleware import authenticate_mcp_request
 from gateway.mcp_permissions import MCPPermissionService
 from database import get_db_session
 from config import settings
-import logging
 
 logger = logging.getLogger(__name__)
 
 # Context variable to store authenticated user info for the current request
-current_user_context: ContextVar[Optional[dict]] = ContextVar("current_user", default=None)
+current_user_context: ContextVar[Optional[dict]] = ContextVar(
+    "current_user", default=None
+)
 
 # Create authenticated MCP server
 authenticated_mcp_server = FastMCP(
-    "arka-mcp-authenticated",
-    strict_input_validation=True
+    "arka-mcp-authenticated", strict_input_validation=True
 )
 
 # Tool directories (maps server_id to directory name)
@@ -71,14 +73,19 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
             if not user_info:
                 logger.warning(f"Unauthenticated MCP request: {request.url.path}")
                 from starlette.responses import JSONResponse
+
                 return JSONResponse(
                     status_code=401,
-                    content={"detail": "Authentication required. Please provide a valid Bearer token."}
+                    content={
+                        "detail": "Authentication required. Please provide a valid Bearer token."
+                    },
                 )
 
             # Store user info in context for tool handlers
             current_user_context.set(user_info)
-            logger.debug(f"Authenticated user {user_info['email']} for {request.url.path}")
+            logger.debug(
+                f"Authenticated user {user_info['email']} for {request.url.path}"
+            )
 
         # Continue processing request
         response = await call_next(request)
@@ -98,10 +105,7 @@ def get_current_user() -> dict:
     user_info = current_user_context.get()
     if not user_info:
         logger.error("No authenticated user in context")
-        raise HTTPException(
-            status_code=401,
-            detail="Authentication required"
-        )
+        raise HTTPException(status_code=401, detail="Authentication required")
     return user_info
 
 
@@ -117,8 +121,7 @@ async def get_user_allowed_tools_cached(user_id: str) -> set:
     """
     async with get_db_session() as db:
         allowed_tools = await MCPPermissionService.get_user_allowed_tools(
-            user_id=user_id,
-            db=db
+            user_id=user_id, db=db
         )
         return allowed_tools
 
@@ -162,10 +165,7 @@ async def list_tools():
     logger.debug(f"User {user_email} allowed tools: {allowed_tools}")
 
     # Filter available tools by user permissions
-    filtered_tools = [
-        tool for tool in all_available_tools
-        if tool in allowed_tools
-    ]
+    filtered_tools = [tool for tool in all_available_tools if tool in allowed_tools]
 
     logger.info(
         f"Returning {len(filtered_tools)}/{len(all_available_tools)} tools "
@@ -225,7 +225,9 @@ async def get_tool_definition(tool_names: List[str]):
     user_id = user_info["user_id"]
     user_email = user_info["email"]
 
-    logger.info(f"get_tool_definition called by user: {user_email} for tools: {tool_names}")
+    logger.info(
+        f"get_tool_definition called by user: {user_email} for tools: {tool_names}"
+    )
 
     # Get user's allowed tools
     allowed_tools = await get_user_allowed_tools_cached(user_id)
@@ -243,7 +245,7 @@ async def get_tool_definition(tool_names: List[str]):
             )
             raise HTTPException(
                 status_code=403,
-                detail=f"Access denied: You do not have permission to access tool '{name}'"
+                detail=f"Access denied: You do not have permission to access tool '{name}'",
             )
 
         # Parse service and tool name
@@ -253,15 +255,14 @@ async def get_tool_definition(tool_names: List[str]):
             logger.error(f"Invalid tool name format: {name}")
             raise HTTPException(
                 status_code=400,
-                detail=f"Invalid tool name format: '{name}'. Expected format: 'service:tool_name'"
+                detail=f"Invalid tool name format: '{name}'. Expected format: 'service:tool_name'",
             )
 
         dir_path = TOOL_DIRS.get(service)
         if not dir_path:
             logger.error(f"Unknown service: {service}")
             raise HTTPException(
-                status_code=404,
-                detail=f"Service '{service}' not found"
+                status_code=404, detail=f"Service '{service}' not found"
             )
 
         module_path = f"{BASE_MCP_SERVER_MODULE}.{dir_path}.{tool}"
@@ -272,8 +273,7 @@ async def get_tool_definition(tool_names: List[str]):
         else:
             logger.error(f"Failed to parse tool: {name}")
             raise HTTPException(
-                status_code=404,
-                detail=f"Tool '{name}' not found or failed to parse"
+                status_code=404, detail=f"Tool '{name}' not found or failed to parse"
             )
 
     logger.info(f"Returning definitions for {len(results)} tools to user {user_email}")
@@ -339,8 +339,10 @@ async def run_tool_code(code: str):
 
     # Create reverse mapping: directory name -> server ID
     # e.g., "gmail_tools" -> "gmail-mcp"
-    dir_to_server = {dir_name.replace("_tools", ""): server_id
-                     for server_id, dir_name in TOOL_DIRS.items()}
+    dir_to_server = {
+        dir_name.replace("_tools", ""): server_id
+        for server_id, dir_name in TOOL_DIRS.items()
+    }
 
     # Validate each imported tool
     for dir_service, tool in imports:
@@ -355,7 +357,7 @@ async def run_tool_code(code: str):
             )
             raise HTTPException(
                 status_code=403,
-                detail=f"Access denied: You do not have permission to use tool '{tool_name}'"
+                detail=f"Access denied: You do not have permission to use tool '{tool_name}'",
             )
 
     logger.info(f"Permission check passed for user {user_email}. Executing code...")
@@ -366,27 +368,21 @@ async def run_tool_code(code: str):
     async with get_db_session() as db:
         try:
             token_context = await create_token_context(
-                user_id=user_id,
-                user_email=user_email,
-                db=db
+                user_id=user_id, user_email=user_email, db=db
             )
             logger.debug(f"Created encrypted token context for user {user_email}")
         except Exception as e:
             logger.error(f"Failed to create token context: {e}")
             raise HTTPException(
-                status_code=500,
-                detail=f"Failed to prepare execution context: {str(e)}"
+                status_code=500, detail=f"Failed to prepare execution context: {str(e)}"
             )
 
     # Execute the code using the code execution service
     try:
         result = requests.post(
             f"{settings.worker_url}/execute",
-            json={
-                "code": json.dumps(code),
-                "token_context": token_context
-            },
-            timeout=30
+            json={"code": json.dumps(code), "token_context": token_context},
+            timeout=30,
         ).json()
 
         logger.info(f"Code execution completed for user {user_email}")
@@ -395,8 +391,7 @@ async def run_tool_code(code: str):
     except requests.exceptions.RequestException as e:
         logger.error(f"Code execution failed for user {user_email}: {e}")
         raise HTTPException(
-            status_code=500,
-            detail=f"Code execution service error: {str(e)}"
+            status_code=500, detail=f"Code execution service error: {str(e)}"
         )
 
 
