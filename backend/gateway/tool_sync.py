@@ -12,9 +12,10 @@ Key features:
 """
 import os
 import logging
-from sqlalchemy import select, delete
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from gateway.models import MCPServerTool, OrganizationToolPermission, UserToolPermission
+from gateway.models import MCPServerTool, OrganizationToolPermission
+from gateway.tool_sync_common import delete_orphaned_tools
 from arka_mcp.utils import parse_tool_file
 
 logger = logging.getLogger(__name__)
@@ -40,6 +41,7 @@ async def sync_tools_to_database(db: AsyncSession) -> dict:
                 "created": int,
                 "updated": int,
                 "deleted": int,
+                "failed": int,
                 "total": int,
                 "servers": list[str]
             }
@@ -48,6 +50,7 @@ async def sync_tools_to_database(db: AsyncSession) -> dict:
         "created": 0,
         "updated": 0,
         "deleted": 0,
+        "failed": 0,
         "total": 0,
         "servers": []
     }
@@ -60,140 +63,118 @@ async def sync_tools_to_database(db: AsyncSession) -> dict:
         logger.warning(f"Tool base directory '{BASE_DIR}' not found, skipping tool sync")
         return stats
 
-    # Scan all *_tools directories
-    for entry in os.listdir(BASE_DIR):
-        dir_path = os.path.join(BASE_DIR, entry)
+    try:
+        # Scan all *_tools directories
+        for entry in os.listdir(BASE_DIR):
+            dir_path = os.path.join(BASE_DIR, entry)
 
-        # Skip if not a directory or doesn't end with _tools
-        if not os.path.isdir(dir_path) or not entry.endswith("_tools"):
-            continue
-
-        # Extract service name (e.g., "notion_tools" -> "notion-mcp")
-        service_name = entry.replace("_tools", "") + "-mcp"
-        stats["servers"].append(service_name)
-
-        # Initialize tracking set for this server
-        discovered_tools[service_name] = set()
-
-        # Scan all .py files in the directory
-        for filename in os.listdir(dir_path):
-            if not filename.endswith(".py") or filename.startswith("__"):
+            # Skip if not a directory or doesn't end with _tools
+            if not os.path.isdir(dir_path) or not entry.endswith("_tools"):
                 continue
 
-            tool_name = filename[:-3]  # Remove .py extension
-            module_path = f"{BASE_MODULE}.{entry}.{tool_name}"
+            # Extract service name (e.g., "notion_tools" -> "notion-mcp")
+            service_name = entry.replace("_tools", "") + "-mcp"
+            stats["servers"].append(service_name)
 
-            # Parse tool metadata
-            try:
-                tool_info = parse_tool_file(module_path, service_name, tool_name)
-            except Exception as e:
-                logger.debug(f"Failed to parse {service_name}:{tool_name}: {e}")
-                continue
+            # Initialize tracking set for this server
+            discovered_tools[service_name] = set()
 
-            if not tool_info:
-                continue
+            # Scan all .py files in the directory
+            for filename in os.listdir(dir_path):
+                if not filename.endswith(".py") or filename.startswith("__"):
+                    continue
 
-            # Track this tool as discovered
-            discovered_tools[service_name].add(tool_name)
+                tool_name = filename[:-3]  # Remove .py extension
+                module_path = f"{BASE_MODULE}.{entry}.{tool_name}"
 
-            # Extract display name from tool_name (convert snake_case to Title Case)
-            display_name = tool_name.replace("_", " ").title()
+                # Parse tool metadata
+                try:
+                    tool_info = parse_tool_file(module_path, service_name, tool_name)
+                except Exception as e:
+                    logger.debug(f"Failed to parse {service_name}:{tool_name}: {e}")
+                    stats["failed"] += 1
+                    continue
 
-            # Extract description from docstring (first line)
-            description = None
-            if tool_info.get("docstring"):
-                lines = [line.strip() for line in tool_info["docstring"].split("\n") if line.strip()]
-                if lines:
-                    description = lines[0]
+                if not tool_info:
+                    stats["failed"] += 1
+                    continue
 
-            # Determine if tool is dangerous (based on name patterns)
-            is_dangerous = any(keyword in tool_name.lower() for keyword in [
-                "delete", "remove", "destroy", "drop", "truncate", "purge"
-            ])
+                # Track this tool as discovered
+                discovered_tools[service_name].add(tool_name)
 
-            # Check if tool already exists
-            result = await db.execute(
-                select(MCPServerTool).where(
-                    MCPServerTool.mcp_server_id == service_name,
-                    MCPServerTool.tool_name == tool_name
+                # Extract display name from tool_name (convert snake_case to Title Case)
+                display_name = tool_name.replace("_", " ").title()
+
+                # Extract description from docstring (first line)
+                description = None
+                if tool_info.get("docstring"):
+                    lines = [line.strip() for line in tool_info["docstring"].split("\n") if line.strip()]
+                    if lines:
+                        description = lines[0]
+
+                # Determine if tool is dangerous (based on name patterns)
+                is_dangerous = any(keyword in tool_name.lower() for keyword in [
+                    "delete", "remove", "destroy", "drop", "truncate", "purge"
+                ])
+
+                # Check if tool already exists
+                result = await db.execute(
+                    select(MCPServerTool).where(
+                        MCPServerTool.mcp_server_id == service_name,
+                        MCPServerTool.tool_name == tool_name
+                    )
                 )
-            )
-            existing_tool = result.scalar_one_or_none()
+                existing_tool = result.scalar_one_or_none()
 
-            if existing_tool:
-                # Update existing tool metadata
-                existing_tool.display_name = display_name
-                existing_tool.description = description or f"{display_name} tool for {service_name}"
-                existing_tool.category = service_name.replace("-mcp", "").title()
-                existing_tool.is_dangerous = is_dangerous
-                stats["updated"] += 1
-            else:
-                # Create new tool
-                new_tool = MCPServerTool(
-                    mcp_server_id=service_name,
-                    tool_name=tool_name,
-                    display_name=display_name,
-                    description=description or f"{display_name} tool for {service_name}",
-                    category=service_name.replace("-mcp", "").title(),
-                    is_dangerous=is_dangerous
-                )
-                db.add(new_tool)
-                await db.flush()
+                if existing_tool:
+                    # Update existing tool metadata
+                    existing_tool.display_name = display_name
+                    existing_tool.description = description or f"{display_name} tool for {service_name}"
+                    existing_tool.category = service_name.replace("-mcp", "").title()
+                    existing_tool.is_dangerous = is_dangerous
+                    stats["updated"] += 1
+                else:
+                    # Create new tool
+                    new_tool = MCPServerTool(
+                        mcp_server_id=service_name,
+                        tool_name=tool_name,
+                        display_name=display_name,
+                        description=description or f"{display_name} tool for {service_name}",
+                        category=service_name.replace("-mcp", "").title(),
+                        is_dangerous=is_dangerous
+                    )
+                    db.add(new_tool)
+                    await db.flush()
 
-                # Create default organization permission (enabled unless dangerous)
-                org_perm = OrganizationToolPermission(
-                    tool_id=new_tool.id,
-                    enabled=not is_dangerous
-                )
-                db.add(org_perm)
-                stats["created"] += 1
+                    # Create default organization permission (enabled unless dangerous)
+                    org_perm = OrganizationToolPermission(
+                        tool_id=new_tool.id,
+                        enabled=not is_dangerous
+                    )
+                    db.add(org_perm)
+                    stats["created"] += 1
 
-    # Delete orphaned tools (tools in DB but not in filesystem)
-    logger.debug("Checking for orphaned tools in database...")
+        # Delete orphaned tools (tools in DB but not in filesystem)
+        logger.debug("Checking for orphaned tools in database...")
 
-    # Get all tools from database
-    all_db_tools_result = await db.execute(select(MCPServerTool))
-    all_db_tools = all_db_tools_result.scalars().all()
+        # Get all tools from database
+        all_db_tools_result = await db.execute(select(MCPServerTool))
+        all_db_tools = all_db_tools_result.scalars().all()
 
-    for db_tool in all_db_tools:
-        server_id = db_tool.mcp_server_id
-        tool_name = db_tool.tool_name
+        # Use shared function to delete orphaned tools
+        stats["deleted"] = await delete_orphaned_tools(db, all_db_tools, discovered_tools)
 
-        # Check if this tool exists in discovered tools
-        is_orphaned = False
+        # Commit all changes
+        await db.commit()
 
-        if server_id in discovered_tools:
-            # Server directory exists - check if tool file exists
-            if tool_name not in discovered_tools[server_id]:
-                is_orphaned = True
-                logger.info(f"🗑️  Deleting orphaned tool: {server_id}:{tool_name} (file removed)")
-        else:
-            # Server directory no longer exists - all its tools are orphaned
-            is_orphaned = True
-            logger.info(f"🗑️  Deleting tool from removed server: {server_id}:{tool_name}")
+        stats["total"] = stats["created"] + stats["updated"]
+        return stats
 
-        if is_orphaned:
-            # Delete associated permissions first (foreign key constraints)
-            await db.execute(
-                delete(OrganizationToolPermission).where(
-                    OrganizationToolPermission.tool_id == db_tool.id
-                )
-            )
-            await db.execute(
-                delete(UserToolPermission).where(
-                    UserToolPermission.tool_id == db_tool.id
-                )
-            )
-
-            # Delete the tool itself
-            await db.delete(db_tool)
-            stats["deleted"] += 1
-
-    # Commit all changes
-    await db.commit()
-
-    stats["total"] = stats["created"] + stats["updated"]
-    return stats
+    except Exception as e:
+        # Rollback on any error to prevent partial commits
+        await db.rollback()
+        logger.error(f"Tool sync failed, rolling back all changes: {e}")
+        raise  # Re-raise to be caught by outer handler in sync_tools_on_startup()
 
 
 async def sync_tools_on_startup(db: AsyncSession):
@@ -209,7 +190,7 @@ async def sync_tools_on_startup(db: AsyncSession):
         logger.info("🔄 Synchronizing tools from filesystem to database...")
         stats = await sync_tools_to_database(db)
 
-        if stats["total"] == 0 and stats["deleted"] == 0:
+        if stats["total"] == 0 and stats["deleted"] == 0 and stats["failed"] == 0:
             logger.info("✓ No tool changes detected")
         else:
             # Build summary message
@@ -220,6 +201,8 @@ async def sync_tools_on_startup(db: AsyncSession):
                 changes.append(f"{stats['updated']} updated")
             if stats["deleted"] > 0:
                 changes.append(f"{stats['deleted']} deleted")
+            if stats["failed"] > 0:
+                changes.append(f"{stats['failed']} failed")
 
             logger.info(
                 f"✓ Tool sync complete: {', '.join(changes)} "

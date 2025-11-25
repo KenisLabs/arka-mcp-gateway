@@ -21,9 +21,10 @@ Usage:
 """
 import os
 import asyncio
-from sqlalchemy import select, delete
+from sqlalchemy import select
 from database import get_db_session
-from gateway.models import MCPServerTool, OrganizationToolPermission, UserToolPermission
+from gateway.models import MCPServerTool, OrganizationToolPermission
+from gateway.tool_sync_common import delete_orphaned_tools
 from arka_mcp.utils import parse_tool_file
 import logging
 
@@ -205,52 +206,8 @@ async def populate_database(tools_by_server: dict, dry_run: bool = False):
         all_db_tools_result = await db.execute(select(MCPServerTool))
         all_db_tools = all_db_tools_result.scalars().all()
 
-        for db_tool in all_db_tools:
-            server_id = db_tool.mcp_server_id
-            tool_name = db_tool.tool_name
-
-            # Check if this tool exists in discovered tools
-            if server_id in discovered_tools:
-                if tool_name not in discovered_tools[server_id]:
-                    # Tool no longer exists in filesystem - delete it
-                    logger.info(f"  ✗ Deleting orphaned tool {server_id}:{tool_name}")
-
-                    if not dry_run:
-                        # Delete associated permissions first (no foreign key cascade)
-                        await db.execute(
-                            delete(OrganizationToolPermission).where(
-                                OrganizationToolPermission.tool_id == db_tool.id
-                            )
-                        )
-                        await db.execute(
-                            delete(UserToolPermission).where(
-                                UserToolPermission.tool_id == db_tool.id
-                            )
-                        )
-                        # Delete the tool
-                        await db.delete(db_tool)
-
-                    total_deleted += 1
-            else:
-                # Server directory no longer exists - delete all its tools
-                logger.info(f"  ✗ Deleting tool from removed server {server_id}:{tool_name}")
-
-                if not dry_run:
-                    # Delete associated permissions first (no foreign key cascade)
-                    await db.execute(
-                        delete(OrganizationToolPermission).where(
-                            OrganizationToolPermission.tool_id == db_tool.id
-                        )
-                    )
-                    await db.execute(
-                        delete(UserToolPermission).where(
-                            UserToolPermission.tool_id == db_tool.id
-                        )
-                    )
-                    # Delete the tool
-                    await db.delete(db_tool)
-
-                total_deleted += 1
+        # Use shared function to delete orphaned tools
+        total_deleted = await delete_orphaned_tools(db, all_db_tools, discovered_tools, dry_run=dry_run)
 
         if not dry_run:
             await db.commit()
