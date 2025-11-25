@@ -2,11 +2,33 @@
 
 This directory contains utility scripts for development and database maintenance.
 
+## Automatic Tool Synchronization
+
+**IMPORTANT:** Tool synchronization now happens **automatically on backend startup** via `gateway/tool_sync.py`. The system will:
+- ✅ Create new tools found in filesystem
+- ✅ Update metadata for existing tools
+- ✅ **Delete orphaned tools** (tools in DB but removed from filesystem)
+- ✅ Clean up associated permissions
+
+You'll see logs like:
+```
+🔄 Synchronizing tools from filesystem to database...
+✓ Tool sync complete: 5 created, 2 updated, 1 deleted across 3 servers
+```
+
+**This means:** When you delete a tool file, it will be automatically removed from the database on the next backend restart.
+
 ## Scripts
 
 ### populate_tools.py
 
-**Purpose:** Syncs the tool database with the filesystem by discovering tools from `arka_mcp/servers/*_tools/` directories.
+**Purpose:** Manually sync the tool database with the filesystem.
+
+**Note:** This script is now **optional** since automatic sync runs on startup. However, it's still useful for:
+- Testing tool discovery logic without restarting backend
+- Previewing changes with `--dry-run` before committing
+- Manual database verification
+- Development and debugging
 
 **Usage:**
 
@@ -21,9 +43,10 @@ python -m utils.populate_tools --dry-run
 
 **When to run:**
 
-- After adding new MCP servers
-- After adding/removing/renaming tools
-- To sync database with codebase
+- Testing tool changes without restarting backend
+- Verifying tool metadata is correct
+- Debugging tool discovery issues
+- Development/testing workflows
 
 ### reset_tools.py
 

@@ -3,12 +3,18 @@ Automatic Tool Synchronization Module.
 
 Automatically discovers and registers tools from filesystem to database on startup.
 This ensures the database always reflects the current codebase state.
+
+Key features:
+- Creates new tools found in filesystem
+- Updates metadata for existing tools
+- Deletes orphaned tools (tools in DB but not in filesystem)
+- Cleans up associated permissions for deleted tools
 """
 import os
 import logging
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
-from gateway.models import MCPServerTool, OrganizationToolPermission
+from gateway.models import MCPServerTool, OrganizationToolPermission, UserToolPermission
 from arka_mcp.utils import parse_tool_file
 
 logger = logging.getLogger(__name__)
@@ -23,6 +29,7 @@ async def sync_tools_to_database(db: AsyncSession) -> dict:
     Synchronize tools from filesystem to database.
 
     Scans all *_tools directories and ensures database has up-to-date tool metadata.
+    Also deletes orphaned tools (tools in DB but not in filesystem).
 
     Args:
         db: Database session
@@ -32,6 +39,7 @@ async def sync_tools_to_database(db: AsyncSession) -> dict:
             {
                 "created": int,
                 "updated": int,
+                "deleted": int,
                 "total": int,
                 "servers": list[str]
             }
@@ -39,9 +47,13 @@ async def sync_tools_to_database(db: AsyncSession) -> dict:
     stats = {
         "created": 0,
         "updated": 0,
+        "deleted": 0,
         "total": 0,
         "servers": []
     }
+
+    # Track all discovered tools per server for orphan detection
+    discovered_tools = {}  # server_id -> set of tool_names
 
     # Check if base directory exists
     if not os.path.exists(BASE_DIR):
@@ -60,6 +72,9 @@ async def sync_tools_to_database(db: AsyncSession) -> dict:
         service_name = entry.replace("_tools", "") + "-mcp"
         stats["servers"].append(service_name)
 
+        # Initialize tracking set for this server
+        discovered_tools[service_name] = set()
+
         # Scan all .py files in the directory
         for filename in os.listdir(dir_path):
             if not filename.endswith(".py") or filename.startswith("__"):
@@ -77,6 +92,9 @@ async def sync_tools_to_database(db: AsyncSession) -> dict:
 
             if not tool_info:
                 continue
+
+            # Track this tool as discovered
+            discovered_tools[service_name].add(tool_name)
 
             # Extract display name from tool_name (convert snake_case to Title Case)
             display_name = tool_name.replace("_", " ").title()
@@ -130,6 +148,47 @@ async def sync_tools_to_database(db: AsyncSession) -> dict:
                 db.add(org_perm)
                 stats["created"] += 1
 
+    # Delete orphaned tools (tools in DB but not in filesystem)
+    logger.debug("Checking for orphaned tools in database...")
+
+    # Get all tools from database
+    all_db_tools_result = await db.execute(select(MCPServerTool))
+    all_db_tools = all_db_tools_result.scalars().all()
+
+    for db_tool in all_db_tools:
+        server_id = db_tool.mcp_server_id
+        tool_name = db_tool.tool_name
+
+        # Check if this tool exists in discovered tools
+        is_orphaned = False
+
+        if server_id in discovered_tools:
+            # Server directory exists - check if tool file exists
+            if tool_name not in discovered_tools[server_id]:
+                is_orphaned = True
+                logger.info(f"🗑️  Deleting orphaned tool: {server_id}:{tool_name} (file removed)")
+        else:
+            # Server directory no longer exists - all its tools are orphaned
+            is_orphaned = True
+            logger.info(f"🗑️  Deleting tool from removed server: {server_id}:{tool_name}")
+
+        if is_orphaned:
+            # Delete associated permissions first (foreign key constraints)
+            await db.execute(
+                delete(OrganizationToolPermission).where(
+                    OrganizationToolPermission.tool_id == db_tool.id
+                )
+            )
+            await db.execute(
+                delete(UserToolPermission).where(
+                    UserToolPermission.tool_id == db_tool.id
+                )
+            )
+
+            # Delete the tool itself
+            await db.delete(db_tool)
+            stats["deleted"] += 1
+
     # Commit all changes
     await db.commit()
 
@@ -150,12 +209,21 @@ async def sync_tools_on_startup(db: AsyncSession):
         logger.info("🔄 Synchronizing tools from filesystem to database...")
         stats = await sync_tools_to_database(db)
 
-        if stats["total"] == 0:
+        if stats["total"] == 0 and stats["deleted"] == 0:
             logger.info("✓ No tool changes detected")
         else:
+            # Build summary message
+            changes = []
+            if stats["created"] > 0:
+                changes.append(f"{stats['created']} created")
+            if stats["updated"] > 0:
+                changes.append(f"{stats['updated']} updated")
+            if stats["deleted"] > 0:
+                changes.append(f"{stats['deleted']} deleted")
+
             logger.info(
-                f"✓ Tool sync complete: {stats['created']} created, "
-                f"{stats['updated']} updated across {len(stats['servers'])} servers"
+                f"✓ Tool sync complete: {', '.join(changes)} "
+                f"across {len(stats['servers'])} servers"
             )
             if stats["servers"]:
                 logger.debug(f"  Servers synced: {', '.join(stats['servers'])}")
