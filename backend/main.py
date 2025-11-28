@@ -106,7 +106,7 @@ if is_enterprise_edition():
 
     # Azure AD OAuth
     azure_module = get_enterprise_module("auth.azure")
-    if azure_module and hasattr(azure_module, 'router'):
+    if azure_module and hasattr(azure_module, "router"):
         app.include_router(azure_module.router)
         loaded_features.append("Azure AD OAuth")
         logger.info("✅ Azure AD OAuth enabled")
@@ -118,8 +118,12 @@ if is_enterprise_edition():
     if loaded_features:
         logger.info(f"✅ Enterprise features loaded: {', '.join(loaded_features)}")
     if failed_features:
-        logger.warning(f"⚠️  Enterprise features unavailable: {', '.join(failed_features)}")
-        logger.info("ℹ️  Application will continue with available authentication methods (GitHub, etc.)")
+        logger.warning(
+            f"⚠️  Enterprise features unavailable: {', '.join(failed_features)}"
+        )
+        logger.info(
+            "ℹ️  Application will continue with available authentication methods (GitHub, etc.)"
+        )
 else:
     # Community edition - stub routers are NOT registered
     logger.info("ℹ️  Enterprise features not available (Community Edition)")
