@@ -7,6 +7,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      // Override @/enterprise to load from submodule if available
+      '@/enterprise': path.resolve(__dirname, '../enterprise/frontend/src/enterprise'),
     },
   },
   server: {
