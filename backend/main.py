@@ -14,6 +14,7 @@ from database import init_db, close_db, get_db_session
 from fastmcp import FastMCP
 from arka_mcp.user_aware_server import authenticated_mcp_app
 from gateway.tool_sync import sync_tools_on_startup
+from middleware import EnterpriseRouteMiddleware
 
 import logging
 
@@ -87,6 +88,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Enterprise route interception middleware
+# Must be added AFTER CORS but BEFORE route registration
+# Intercepts enterprise routes in community edition and returns 402
+app.add_middleware(EnterpriseRouteMiddleware)
+
 # Include core routers (always available)
 app.include_router(github_router)
 app.include_router(admin_router)
@@ -97,6 +103,8 @@ app.include_router(mcp_token_router)
 app.include_router(servers_router)
 
 # Enterprise features (conditional registration)
+# Enterprise routes are ONLY registered when enterprise submodule is present
+# Community edition uses middleware to intercept and return 402
 if is_enterprise_edition():
     logger.info("🔧 Loading enterprise features...")
 
@@ -114,6 +122,16 @@ if is_enterprise_edition():
         failed_features.append("Azure AD OAuth")
         logger.warning("⚠️  Azure AD module not available - skipping")
 
+    # Per-user tool permissions
+    try:
+        from enterprise.tool_permissions import router as enterprise_tool_permissions_router
+        app.include_router(enterprise_tool_permissions_router)
+        loaded_features.append("Per-User Tool Permissions")
+        logger.info("✅ Per-User Tool Permissions enabled")
+    except ImportError:
+        failed_features.append("Per-User Tool Permissions")
+        logger.warning("⚠️  Enterprise tool permissions module not available - skipping")
+
     # Log summary
     if loaded_features:
         logger.info(f"✅ Enterprise features loaded: {', '.join(loaded_features)}")
@@ -122,11 +140,12 @@ if is_enterprise_edition():
             f"⚠️  Enterprise features unavailable: {', '.join(failed_features)}"
         )
         logger.info(
-            "ℹ️  Application will continue with available authentication methods (GitHub, etc.)"
+            "ℹ️  Application will continue with available features"
         )
 else:
-    # Community edition - stub routers are NOT registered
-    logger.info("ℹ️  Enterprise features not available (Community Edition)")
+    # Community edition
+    logger.info("ℹ️  Running Community Edition")
+    logger.info("ℹ️  Enterprise features will return 402 Payment Required")
 
 
 @app.get("/")

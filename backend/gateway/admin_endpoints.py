@@ -281,138 +281,6 @@ async def create_user(
         raise HTTPException(status_code=500, detail=f"Failed to create user: {str(e)}")
 
 
-@router.get("/users/{user_email}/tools")
-async def list_user_tools(
-    user_email: str,
-    admin: dict = Depends(require_admin),
-    db: AsyncSession = Depends(get_db),
-):
-    """
-    List all tools with access status for a specific user.
-
-    Shows organization-level status and user-level overrides.
-
-    **Enterprise Edition Feature**: Per-user tool permissions are only available
-    in the Enterprise Edition. Contact support@kenislabs.com or visit kenislabs.com.com for more information.
-
-    Args:
-        user_email: User's email address
-        admin: Current admin user (from JWT)
-        db: Database session
-
-    Returns:
-        List of tools with access status for the user
-    """
-    raise HTTPException(
-        status_code=402,
-        detail="Per-user tool permissions are an Enterprise Edition feature. Contact support@kenislabs.com or visit kenislabs.com.com for more information.",
-    )
-
-
-# DEPRECATED: This endpoint is replaced by /users/{user_email}/tools/{tool_id}/toggle in tool_management_endpoints.py
-# Commenting out to prevent route shadowing. Remove after migration is complete.
-# @router.put("/users/{user_email}/tools/{server_id}/toggle")
-# async def toggle_user_tool(
-#     user_email: str,
-#     server_id: str,
-#     enabled: bool,
-#     admin: dict = Depends(require_admin),
-#     db: AsyncSession = Depends(get_db)
-# ):
-#     """
-#     Set user-level override for tool access.
-#
-#     This creates an override at the user level. The tool must also be
-#     enabled at the organization level for the user to access it.
-#
-#     Args:
-#         user_email: User's email address
-#         server_id: MCP server ID
-#         enabled: True to enable, False to disable
-#         admin: Current admin user (from JWT)
-#         db: Database session
-#
-#     Returns:
-#         Success message
-#     """
-#     # Verify user exists
-#     result = await db.execute(select(User).where(User.email == user_email))
-#     user = result.scalar_one_or_none()
-#     if not user:
-#         raise HTTPException(status_code=404, detail=f"User {user_email} not found")
-#
-#     # Verify server exists in JSON
-#     mcp_servers = load_mcp_servers()
-#     server_exists = any(s.get("id") == server_id for s in mcp_servers)
-#     if not server_exists:
-#         raise HTTPException(status_code=404, detail=f"Server {server_id} not found")
-#
-#     # Check if user access record exists
-#     result = await db.execute(
-#         select(UserToolAccess).where(
-#             UserToolAccess.user_email == user_email,
-#             UserToolAccess.mcp_server_id == server_id
-#         )
-#     )
-#     user_access = result.scalar_one_or_none()
-#
-#     if user_access:
-#         # Update existing record
-#         user_access.enabled = enabled
-#     else:
-#         # Create new record
-#         user_access = UserToolAccess(
-#             user_email=user_email,
-#             mcp_server_id=server_id,
-#             enabled=enabled
-#         )
-#         db.add(user_access)
-#
-#     await db.flush()
-#
-#     logger.info(
-#         f"Admin {admin.get('sub')} set {server_id} to "
-#         f"{'enabled' if enabled else 'disabled'} for user {user_email}"
-#     )
-#
-#     return {
-#         "message": f"Tool {server_id} {'enabled' if enabled else 'disabled'} for user {user_email}",
-#         "user_email": user_email,
-#         "server_id": server_id,
-#         "enabled": enabled
-#     }
-
-
-@router.delete("/users/{user_email}/tools/{server_id}/override")
-async def remove_user_tool_override(
-    user_email: str,
-    server_id: str,
-    admin: dict = Depends(require_admin),
-    db: AsyncSession = Depends(get_db),
-):
-    """
-    Remove user-level override for tool access.
-
-    Removes the user-level override, reverting to organization-level default.
-
-    **Enterprise Edition Feature**: Per-user tool permissions are only available
-    in the Enterprise Edition. Contact support@kenislabs.com or visit kenislabs.com.com for more information.
-
-    Args:
-        user_email: User's email address
-        server_id: MCP server ID
-        admin: Current admin user (from JWT)
-        db: Database session
-
-    Returns:
-        Success message
-    """
-    raise HTTPException(
-        status_code=402,
-        detail="Per-user tool permissions are an Enterprise Edition feature. Contact support@kenislabs.com or visit kenislabs.com.com for more information.",
-    )
-
-
 # ============================================================================
 # OAuth Provider Management Endpoints
 # ============================================================================
@@ -677,7 +545,7 @@ async def update_oauth_provider(
         result = await db.execute(
             select(UserCredential).where(
                 UserCredential.server_id == server_id,
-                UserCredential.is_authorized == True
+                UserCredential.is_authorized == True,
             )
         )
         user_creds = result.scalars().all()
@@ -708,7 +576,7 @@ async def update_oauth_provider(
     return {
         "message": f"OAuth provider updated for server {server_id}",
         "mcp_server_id": server_id,
-        "invalidated_users": invalidated_count
+        "invalidated_users": invalidated_count,
     }
 
 
