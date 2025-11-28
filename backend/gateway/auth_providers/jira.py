@@ -5,10 +5,10 @@ Jira OAuth 2.0 documentation:
 https://developer.atlassian.com/cloud/jira/platform/oauth-2-3lo-apps/
 """
 
-import httpx
 import logging
 from typing import Optional, List
 from urllib.parse import urlencode
+import httpx
 from fastapi import HTTPException
 
 from .base import OAuthProvider, OAuthConfig, OAuthTokenResponse
@@ -36,6 +36,7 @@ class JiraOAuthProvider(OAuthProvider):
             "response_type": "code",
             "state": state,
         }
+
         url = f"{self.AUTHORIZATION_BASE_URL}?{urlencode(params)}"
         logger.debug(f"Jira auth URL: {url}")
         return url
@@ -68,7 +69,9 @@ class JiraOAuthProvider(OAuthProvider):
             )
         except httpx.HTTPError as e:
             logger.error(f"Jira token exchange error: {e}")
-            raise HTTPException(status_code=400, detail="Failed to authorize Jira integration")
+            raise HTTPException(
+                status_code=400, detail="Failed to authorize Jira integration"
+            )
 
     async def refresh_access_token(self, refresh_token: str) -> OAuthTokenResponse:
         """
@@ -111,7 +114,10 @@ class JiraOAuthProvider(OAuthProvider):
         Validate token by checking accessible resources.
         """
         try:
-            headers = {"Authorization": f"Bearer {access_token}", "Accept": "application/json"}
+            headers = {
+                "Authorization": f"Bearer {access_token}",
+                "Accept": "application/json",
+            }
             async with httpx.AsyncClient() as client:
                 resp = await client.get(
                     "https://api.atlassian.com/oauth/token/accessible-resources",
@@ -123,6 +129,7 @@ class JiraOAuthProvider(OAuthProvider):
             logger.error(f"Failed to validate Jira token: {e}")
             return False
 
+
 def create_jira_oauth_provider(
     client_id: str,
     client_secret: str,
@@ -132,16 +139,15 @@ def create_jira_oauth_provider(
     """
     Factory for Jira OAuth provider.
     """
-    if scopes is None:
-        # Default Jira scopes
+    if not scopes:
+        # Default Jira scopes in specific order for authorization URL
         scopes = [
             "read:jira-work",
-            "write:jira-work",
-            "manage:jira-project",
-            "manage:jira-configuration",
             "read:jira-user",
+            "write:jira-work",
             "manage:jira-webhook",
             "manage:jira-data-provider",
+            "manage:jira-project",
         ]
     config = OAuthConfig(
         provider_name="jira",

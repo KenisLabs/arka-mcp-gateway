@@ -385,6 +385,7 @@ async def run_tool_code(code: str):
             json={"code": json.dumps(code), "token_context": token_context},
             timeout=30,
         ).json()
+        logger.info(f"Code execution result {result}")
 
         logger.info(f"Code execution completed for user {user_email}")
         return result
