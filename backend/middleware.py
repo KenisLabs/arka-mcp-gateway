@@ -10,7 +10,7 @@ Enterprise routes are only registered when the enterprise submodule is present.
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
-from config import is_enterprise_edition
+from edition import is_enterprise_edition
 import logging
 
 logger = logging.getLogger(__name__)

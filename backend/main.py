@@ -4,7 +4,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from auth.github import router as github_router
 from auth.admin import router as admin_router
-from config import settings, is_enterprise_edition, get_enterprise_module
+from config import settings
+from edition import is_enterprise_edition, get_enterprise_module
 from gateway.servers import router as servers_router
 from gateway.admin_endpoints import router as admin_endpoints_router
 from gateway.tool_management_endpoints import router as tool_management_router
