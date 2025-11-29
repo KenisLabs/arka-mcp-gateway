@@ -25,7 +25,7 @@ const onRefreshed = () => {
   refreshSubscribers = [];
 };
 
-// Response interceptor to handle 401, 402 errors and token refresh
+// Response interceptor to handle 401 errors and token refresh
 api.interceptors.response.use(
   (response) => {
     // If response is successful, just return it
@@ -33,27 +33,6 @@ api.interceptors.response.use(
   },
   async (error) => {
     const originalRequest = error.config;
-
-    // Handle 402 Payment Required (Enterprise Edition features)
-    if (error.response?.status === 402) {
-      const errorMessage =
-        error.response?.data?.message ||
-        error.response?.data?.detail ||
-        "This is an Enterprise Edition feature. Contact support@kenislabs.com or visit kenislabs.com for more information.";
-
-      // Create a custom error with enterprise feature information
-      const enterpriseError = new Error(errorMessage);
-      enterpriseError.isEnterpriseFeature = true;
-      enterpriseError.status = 402;
-      enterpriseError.feature = error.response?.data?.feature;
-      enterpriseError.upgradeUrl = error.response?.data?.upgrade_url;
-      enterpriseError.originalError = error;
-
-      // You can also show a toast/notification here if you have a toast system
-      // For now, components will handle the error individually
-
-      return Promise.reject(enterpriseError);
-    }
 
     // Don't try to refresh on login, logout, or refresh endpoints
     const skipRefreshUrls = [

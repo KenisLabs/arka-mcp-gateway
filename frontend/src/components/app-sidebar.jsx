@@ -73,13 +73,12 @@ const applicationItems = [
 ];
 
 const enterpriseItems = [
-  // COMMENTED OUT FOR COMMUNITY EDITION - Uncomment when enterprise edition is enabled
-  // {
-  //   title: "Enterprise SSO",
-  //   icon: Shield,
-  //   url: "/enterprise/sso",
-  //   description: "Azure AD, SAML, LDAP integration",
-  // },
+  {
+    title: "Enterprise SSO",
+    icon: Shield,
+    url: "/enterprise/sso",
+    description: "Azure AD, SAML, LDAP integration",
+  },
   {
     title: "Teams & Groups",
     icon: UsersRound,

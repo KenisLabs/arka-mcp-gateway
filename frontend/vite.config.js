@@ -6,9 +6,6 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      // IMPORTANT: More specific aliases must come FIRST
-      // Override @/enterprise to load from submodule if available
-      '@/enterprise': path.resolve(__dirname, '../enterprise/frontend/src/enterprise'),
       '@': path.resolve(__dirname, './src'),
     },
   },
