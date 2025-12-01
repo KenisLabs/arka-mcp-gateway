@@ -73,15 +73,12 @@ export function MCPConfigModal({ open, onOpenChange, clientType }) {
     };
 
     if (clientType === "vscode") {
-      return JSON.stringify(
-        {
-          mcpServers: {
-            "arka-mcp-gateway": httpConfig,
-          },
+      // Protocol-based install: compact JSON for VS Code MCP install
+      return JSON.stringify({
+        servers: {
+          "arka-mcp-gateway": httpConfig,
         },
-        null,
-        2
-      );
+      });
     } else if (clientType === "cursor") {
       return JSON.stringify(
         {
@@ -105,7 +102,7 @@ export function MCPConfigModal({ open, onOpenChange, clientType }) {
     }
 
     return JSON.stringify(httpConfig, null, 2);
-  };
+ };
 
   const getInstructions = () => {
     if (clientType === "vscode") {
@@ -153,6 +150,29 @@ export function MCPConfigModal({ open, onOpenChange, clientType }) {
       steps: ["Configure your MCP client with the settings below"],
       configPath: "Client-specific configuration file",
     };
+  };
+  /**
+   * Build protocol link for direct MCP install (VS Code)
+   */
+  const getProtocolLink = () => {
+    if (clientType !== "vscode" || !generatedToken) return "";
+    const backendUrl = import.meta.env.VITE_API_URL || window.location.origin;
+    const payload = { name: "arka-mcp-gateway", type: "http", url: `${backendUrl}/mcp`, headers: { Authorization: `Bearer ${generatedToken.token}` } };
+    return `vscode:mcp/install?${JSON.stringify(payload)}`;
+  };
+  /**
+   * Build protocol link for direct MCP install (Cursor)
+   */
+  const getCursorProtocolLink = () => {
+    if (clientType !== "cursor" || !generatedToken) return "";
+    // Build base payload for Cursor install and encode as Base64
+    const backendUrl = import.meta.env.VITE_API_URL || window.location.origin;
+    const payload = { name: "arka-mcp-gateway", type: "http", url: `${backendUrl}/mcp`, headers: { Authorization: `Bearer ${generatedToken.token}` } };
+    const json = JSON.stringify(payload);
+    // btoa for Base64 encoding; use encodeURIComponent in case of URL issues
+    const configBase64 = encodeURIComponent(btoa(json));
+    // Cursor deeplink format
+    return `cursor://anysphere.cursor-deeplink/mcp/install?name=${payload.name}&config=${configBase64}`;
   };
 
   const instructions = getInstructions();
@@ -216,74 +236,96 @@ export function MCPConfigModal({ open, onOpenChange, clientType }) {
                 </AlertDescription>
               </Alert>
 
-              {/* Instructions */}
-              <div className="space-y-3">
-                <h4 className="font-semibold text-sm">Setup Instructions:</h4>
-                <ol className="space-y-2 text-sm text-muted-foreground list-decimal list-inside">
-                  {instructions.steps.map((step, i) => (
-                    <li key={i}>{step}</li>
-                  ))}
-                </ol>
-                <p className="text-xs text-muted-foreground mt-2 break-words">
-                  Config file location:{" "}
-                  <code className="bg-muted px-1 py-0.5 rounded break-all">
-                    {instructions.configPath}
-                  </code>
-                </p>
-              </div>
-
-              {/* Configuration */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label>Configuration</Label>
+              {clientType === "vscode" ? (
+                <div className="space-y-4">
                   <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleCopyConfig}
-                    className="gap-2"
+                    onClick={() => window.location.href = getProtocolLink()}
+                    className="w-full bg-[#e4e4e7] text-black hover:bg-[#e4e4e7]"
                   >
-                    {copied ? (
-                      <>
-                        <CheckCircle className="size-4" />
-                        Copied!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="size-4" />
-                        Copy
-                      </>
-                    )}
+                    Install Arka MCP Gateway in VS Code
                   </Button>
                 </div>
-                <pre className="bg-muted p-4 rounded-lg text-xs overflow-x-auto whitespace-pre-wrap break-all">
-                  <code className="break-all">{getConfigForClient()}</code>
-                </pre>
-              </div>
-
-              {/* Token Info */}
-              <div className="space-y-2 p-4 border rounded-lg bg-muted/50">
-                <h4 className="font-semibold text-sm">Token Details</h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
-                    <span className="text-muted-foreground">Token Name:</span>
-                    <span className="font-medium break-words">
-                      {generatedToken.token_name}
-                    </span>
-                  </div>
-                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
-                    <span className="text-muted-foreground">Token ID:</span>
-                    <span className="font-mono text-xs break-all">
-                      {generatedToken.token_id}
-                    </span>
-                  </div>
-                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
-                    <span className="text-muted-foreground">Created:</span>
-                    <span className="break-words">
-                      {new Date(generatedToken.created_at).toLocaleString()}
-                    </span>
-                  </div>
+              ) : clientType === "cursor" ? (
+                <div className="space-y-4">
+                  <Button
+                    onClick={() => window.location.href = getCursorProtocolLink()}
+                    className="w-full bg-[#e4e4e7] text-black hover:bg-[#e4e4e7]"
+                  >
+                    Install Arka MCP Gateway in Cursor
+                  </Button>
                 </div>
-              </div>
+              ) : (
+                <>
+                  {/* Instructions */}
+                  <div className="space-y-3">
+                    <h4 className="font-semibold text-sm">Setup Instructions:</h4>
+                    <ol className="space-y-2 text-sm text-muted-foreground list-decimal list-inside">
+                      {instructions.steps.map((step, i) => (
+                        <li key={i}>{step}</li>
+                      ))}
+                    </ol>
+                    <p className="text-xs text-muted-foreground mt-2 break-words">
+                      Config file location:{" "}
+                      <code className="bg-muted px-1 py-0.5 rounded break-all">
+                        {instructions.configPath}
+                      </code>
+                    </p>
+                  </div>
+
+                  {/* Configuration */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label>Configuration</Label>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCopyConfig}
+                        className="gap-2"
+                      >
+                        {copied ? (
+                          <>
+                            <CheckCircle className="size-4" />
+                            Copied!
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="size-4" />
+                            Copy
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                    <pre className="bg-muted p-4 rounded-lg text-xs overflow-x-auto whitespace-pre-wrap break-all">
+                      <code className="break-all">{getConfigForClient()}</code>
+                    </pre>
+                  </div>
+
+                  {/* Token Info */}
+                  <div className="space-y-2 p-4 border rounded-lg bg-muted/50">
+                    <h4 className="font-semibold text-sm">Token Details</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                        <span className="text-muted-foreground">Token Name:</span>
+                        <span className="font-medium break-words">
+                          {generatedToken.token_name}
+                        </span>
+                      </div>
+                      <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                        <span className="text-muted-foreground">Token ID:</span>
+                        <span className="font-mono text-xs break-all">
+                          {generatedToken.token_id}
+                        </span>
+                      </div>
+                      <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                        <span className="text-muted-foreground">Created:</span>
+                        <span className="break-words">
+                          {new Date(generatedToken.created_at).toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
 
               {/* Action Buttons */}
               <div className="flex gap-2">

@@ -307,6 +307,62 @@
       "setup_instructions": "1. Go to Google Cloud Console\n2. Create or select a project\n3. Enable Google Tasks API\n4. Create OAuth 2.0 credentials (Web application)\n5. Add authorized redirect URI\n6. Copy Client ID and Client Secret",
       "capabilities": ["Manage task lists", "Create and update tasks", "Query task list contents"],
       "popular": false
+    },
+    {
+      "id": "jira-mcp",
+      "name": "Jira",
+      "display_name": "Jira MCP Server",
+      "description": "Manage Jira issues, projects, sprints, and workflows. Create, update, and track tickets across your organization.",
+      "category": "Project Management",
+      "icon": "jira",
+      "version": "1.0.0",
+      "publisher": "Anthropic",
+      "requires_auth": true,
+      "auth_type": "oauth2",
+      "auth_fields": [
+        {
+          "name": "client_id",
+          "label": "Jira OAuth Client ID",
+          "type": "text",
+          "required": true,
+          "placeholder": "jira-client-id",
+          "help_text": "OAuth 2.0 Client ID from Atlassian Developer Console"
+        },
+        {
+          "name": "client_secret",
+          "label": "Jira OAuth Client Secret",
+          "type": "password",
+          "required": true,
+          "placeholder": "jira-secret-xxxxxxxxxxxx",
+          "help_text": "OAuth 2.0 Client Secret from Atlassian Developer Console"
+        },
+        {
+          "name": "cloud_id",
+          "label": "Jira Cloud ID",
+          "type": "text",
+          "required": true,
+          "placeholder": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+          "help_text": "Your Jira Cloud instance ID"
+        },
+        {
+          "name": "redirect_uri",
+          "label": "Redirect URI",
+          "type": "text",
+          "required": true,
+          "placeholder": "http://localhost:8000/servers/jira-mcp/auth-callback",
+          "help_text": "Must match the redirect URI configured in your Jira OAuth settings"
+        }
+      ],
+      "documentation_url": "https://developer.atlassian.com/cloud/jira/platform/oauth-2-3lo-apps/",
+      "setup_instructions": "1. Go to Atlassian Developer Console\\n2. Create a new OAuth 2.0 integration\\n3. Configure scopes and permissions\\n4. Get your Cloud ID from site admin",
+      "capabilities": [
+        "Issue management",
+        "Project administration",
+        "Sprint planning",
+        "Comment threads",
+        "Status transitions"
+      ],
+      "popular": true
     }
   ],
   "_disabled_catalog": [

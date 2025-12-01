@@ -11,6 +11,7 @@ from .slack import create_slack_oauth_provider
 from .notion import create_notion_oauth_provider
 from .google_tasks import create_google_tasks_oauth_provider
 from .supabase import create_supabase_oauth_provider
+from .jira import create_jira_oauth_provider
 from gateway.oauth_db import get_oauth_credentials
 import logging
 
@@ -170,6 +171,16 @@ class OAuthProviderRegistry:
                         scopes=credentials['scopes'],
                     )
                     # Cache the provider
+                    self._providers[server_id] = provider
+                    return provider
+                # Jira integration
+                elif credentials['provider_name'] == 'jira':
+                    provider = create_jira_oauth_provider(
+                        client_id=credentials['client_id'],
+                        client_secret=credentials['client_secret'],
+                        redirect_uri=credentials['redirect_uri'],
+                        scopes=credentials.get('scopes', []),
+                    )
                     self._providers[server_id] = provider
                     return provider
                 else:

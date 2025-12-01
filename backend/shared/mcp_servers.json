@@ -77,6 +77,17 @@
       "requires_auth": true,
       "auth_type": "oauth2",
       "default_enabled": true
+    },
+    {
+      "id": "jira-mcp",
+      "name": "Jira MCP Server",
+      "description": "Manage Jira issues, projects, sprints, and workflows",
+      "status": "available",
+      "type": "jira",
+      "icon": "jira",
+      "requires_auth": true,
+      "auth_type": "oauth2",
+      "default_enabled": true
     }
   ]
 }

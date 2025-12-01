@@ -317,7 +317,8 @@ async def add_mcp_server(
                 "jira-mcp": {
                     "auth_url": "https://auth.atlassian.com/authorize",
                     "token_url": "https://auth.atlassian.com/oauth/token",
-                    "scopes": ["read:jira-work", "write:jira-work"],
+                    # Updated scopes as per requirements
+                    "scopes": [],
                 },
                 "slack-mcp": {
                     "auth_url": "https://slack.com/oauth/v2/authorize",
