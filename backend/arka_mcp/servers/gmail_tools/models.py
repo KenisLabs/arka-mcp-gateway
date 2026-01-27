@@ -280,3 +280,36 @@ class HistoryListRequest(BaseModel):
     pageToken: Optional[str] = None
     labelId: Optional[str] = None
     historyTypes: Optional[List[str]] = None
+
+
+# ============================================================================
+# Newsletter Management Models
+# ============================================================================
+
+class FetchNewsletterSubscriptionsRequest(BaseModel):
+    """Request model for fetching newsletter subscriptions."""
+    user_id: str = "me"
+    max_results: int = 50
+    page_token: Optional[str] = None
+    from_email: Optional[str] = None
+
+    @field_validator('max_results')
+    @classmethod
+    def validate_max_results(cls, v: int) -> int:
+        """Validate max_results range."""
+        if v < 1 or v > 500:
+            raise ValueError("max_results must be between 1 and 500")
+        return v
+
+
+class UnsubscribeFromNewsletterRequest(BaseModel):
+    """Request model for unsubscribing from a newsletter."""
+    message_id: str
+    user_id: str = "me"
+
+    @field_validator('message_id')
+    @classmethod
+    def validate_message_id(cls, v: str) -> str:
+        """Validate message_id format to prevent SSRF."""
+        MessageId(message_id=v)
+        return v
