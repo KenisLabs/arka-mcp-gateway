@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/kenislabs-arka-mcp-gateway-badge.png)](https://mseep.ai/app/kenislabs-arka-mcp-gateway)
+
 # Arka MCP Gateway
 
 A centralized gateway for managing and connecting to multiple MCP (Model Context Protocol) servers. Provides secure, scalable access to MCP servers with SSO authentication, session isolation, and central management.
